@@ -1,0 +1,29 @@
+# Build outputs
+bin/
+obj/
+publish/
+portable/
+publish-small/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+Logs/
+
+# Excluded files
+.claude/
+.claude*
+CLAUDE.md
+
+# Other
+*.cache
+TestResults/
