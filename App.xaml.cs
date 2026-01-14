@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Windows;
-using Hardcodet.Wpf.TaskbarNotification;
+using H.NotifyIcon;
 using Pie.Models;
 using Pie.Services;
 using Pie.Views;
@@ -73,12 +73,6 @@ namespace Pie
 
         private void InitializeTrayIcon()
         {
-            _trayIcon = new TaskbarIcon
-            {
-                ToolTipText = "Pie - Right-click for options",
-                Visibility = Visibility.Visible
-            };
-
             // Create context menu
             var contextMenu = new System.Windows.Controls.ContextMenu();
 
@@ -110,25 +104,26 @@ namespace Pie
             exitItem.Click += (s, e) => ExitApplication();
             contextMenu.Items.Add(exitItem);
 
-            _trayIcon.ContextMenu = contextMenu;
-            _trayIcon.TrayMouseDoubleClick += (s, e) => ShowSettings();
+            _trayIcon = new TaskbarIcon
+            {
+                ToolTipText = "Pie - Right-click for options",
+                ContextMenu = contextMenu,
+                Icon = CreateTrayIcon()
+            };
 
-            // Create a simple icon programmatically
-            _trayIcon.Icon = CreateTrayIcon();
+            _trayIcon.ForceCreate();
+            _trayIcon.TrayMouseDoubleClick += (s, e) => ShowSettings();
         }
 
         private System.Drawing.Icon CreateTrayIcon()
         {
-            // Create a simple pie icon programmatically
             using var bitmap = new System.Drawing.Bitmap(32, 32);
             using var graphics = System.Drawing.Graphics.FromImage(bitmap);
             graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
-            // Draw a pie shape
             using var brush = new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(0, 122, 255));
             graphics.FillEllipse(brush, 2, 2, 28, 28);
 
-            // Draw center
             using var whiteBrush = new System.Drawing.SolidBrush(System.Drawing.Color.White);
             graphics.FillEllipse(whiteBrush, 10, 10, 12, 12);
 
@@ -137,7 +132,6 @@ namespace Pie
 
         private void InitializeHiddenWindow()
         {
-            // Hidden window for hotkey registration
             _hiddenWindow = new Window
             {
                 Width = 0,
@@ -167,7 +161,6 @@ namespace Pie
             _hotkeyService.HotkeyPressed += (s, e) =>
             {
                 var now = DateTime.Now;
-                // Increased debounce to 500ms to prevent auto-repeat from closing menu
                 if ((now - _lastHotkeyTime).TotalMilliseconds < 500)
                 {
                     LogService.Debug("Hotkey pressed - ignoring (within 500ms debounce)");
@@ -185,7 +178,6 @@ namespace Pie
                     }
                     else if (DateTime.Now >= _pieMenuWindow.CanToggleCloseAfter)
                     {
-                        // Allow closing via hotkey after 700ms
                         LogService.Debug("Hotkey closing menu (after toggle timeout)");
                         _pieMenuWindow.CloseMenu();
                     }
@@ -214,7 +206,6 @@ namespace Pie
                 {
                     LogService.Debug($"Middle button handler - IsVisible: {_pieMenuWindow.IsVisible}, IsClosing: {_pieMenuWindow.IsClosing}");
 
-                    // Open if hidden OR if it's currently animating out (closing)
                     if (!_pieMenuWindow.IsVisible || _pieMenuWindow.IsClosing)
                     {
                         LogService.Debug("Middle mouse trigger - showing pie menu");
@@ -222,7 +213,6 @@ namespace Pie
                     }
                     else if (DateTime.Now >= _pieMenuWindow.CanToggleCloseAfter)
                     {
-                        // Allow closing via middle button after 700ms
                         LogService.Debug("Middle mouse trigger - closing menu (after toggle timeout)");
                         _pieMenuWindow.CloseMenu();
                     }
