@@ -2,6 +2,12 @@
 
 A radial pie menu launcher for Windows. Quick access to your apps, window switching, media controls, and custom shortcuts - all from a slick circular menu.
 
+
+https://github.com/user-attachments/assets/06160b3e-37ac-4fdd-931e-28865a740a72
+
+
+   
+
 ![.NET 6](https://img.shields.io/badge/.NET-6.0-purple)
 ![Windows](https://img.shields.io/badge/Platform-Windows-blue)
 
