@@ -168,10 +168,6 @@ namespace Pie.Views
 
             Show();
 
-            // --- CAPTURE MOUSE FOR CLICK-OUTSIDE ---
-            // Capturing the mouse ensures we receive clicks even if they are outside the window bounds
-            Mouse.Capture(_pieMenuControl, CaptureMode.SubTree);
-
             _soundService.PlayActivateSound();
             _pieMenuControl.AnimateIn();
             Activate();
@@ -483,9 +479,6 @@ namespace Pie.Views
                 LogService.Debug("CloseMenu early return - already closing or not visible");
                 return;
             }
-
-            // Release mouse capture immediately
-            Mouse.Capture(null);
 
             _isClosing = true;
             LogService.Debug("Starting close animation");

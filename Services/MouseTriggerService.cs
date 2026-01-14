@@ -55,21 +55,8 @@ namespace Pie.Services
         {
             if (nCode >= 0 && wParam == (IntPtr)WM_MBUTTONDOWN)
             {
-                // Middle button pressed
                 LogService.Debug("Middle Button Pressed (Hook)");
-
-                // Fire event
                 MiddleButtonTriggered?.Invoke(this, EventArgs.Empty);
-
-                // Return 1 to consume/block the event so it doesn't propagate to other apps
-                // (Tie the button to the wheel)
-                return (IntPtr)1;
-            }
-
-            // We also block UP event to prevent "click" actions in other apps
-            if (nCode >= 0 && wParam == (IntPtr)WM_MBUTTONUP)
-            {
-                return (IntPtr)1;
             }
 
             return CallNextHookEx(_hookID, nCode, wParam, lParam);
