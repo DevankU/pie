@@ -5,6 +5,8 @@ A radial pie menu launcher for Windows. Quick access to your apps, window switch
 ![.NET 6](https://img.shields.io/badge/.NET-6.0-purple)
 ![Windows](https://img.shields.io/badge/Platform-Windows-blue)
 
+UNDER DEVELOPMENT — FEATURES MAY BE UNSTABLE. REPORT BUGS IN ISSUES.
+
 ## What is this?
 
 Pie is a productivity tool that gives you a circular menu (like in video games) to:
