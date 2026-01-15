@@ -13,6 +13,13 @@ https://github.com/user-attachments/assets/06160b3e-37ac-4fdd-931e-28865a740a72
 
 UNDER DEVELOPMENT — FEATURES MAY BE UNSTABLE. REPORT BUGS IN ISSUES.
 
+## screenshots
+<img width="1202" height="740" alt="Launcher" src="https://github.com/user-attachments/assets/5f28ef29-686b-43f4-8a3b-84f531db8f74" />
+<img width="1199" height="742" alt="settings" src="https://github.com/user-attachments/assets/2e1b72b1-4a9c-40a8-9845-4fb094c5c721" />
+<img width="595" height="611" alt="Switcher" src="https://github.com/user-attachments/assets/4274da8d-1ccb-410c-bd58-0db31c6ca430" />
+
+
+
 ## What is this?
 
 Pie is a productivity tool that gives you a circular menu (like in video games) to:
