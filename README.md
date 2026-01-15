@@ -24,6 +24,18 @@ Pie is a productivity tool that gives you a circular menu (like in video games) 
 
 Activate it with a hotkey (default: `Ctrl+Space`) or a 3-finger tap on your touchpad( in windows settings switch the 3 finger tap -> middle mouse click).
 
+## What's New in v0.2 Alpha 🚀
+
+- **Group Management:** Create app groups (folders) to organize your launcher.
+- **Performance Overhaul:**  async loading and icon caching.
+- **Double-Tap Trigger:** Configure double-tap actions 
+- **Enhanced Settings:**
+  - Drag-and-drop to reorder items.
+  - Multi-select when adding apps.
+  - New "Running Apps" exclusion picker.
+- **Smoother & Faster:** Optimized logging and resource handling.
+
+
 ## Features
 
 - Smooth animations
