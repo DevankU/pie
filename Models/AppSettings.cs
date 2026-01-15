@@ -61,6 +61,11 @@ namespace Pie.Models
         public List<AppControllerConfig> ControllerConfigs { get; set; } = new();
 
         public bool DarkMode { get; set; } = true;
+
+        // Double-tap settings (for 3-finger tap / middle mouse)
+        public bool DoubleTapEnabled { get; set; } = true;
+        public int DoubleTapTimeoutMs { get; set; } = 700;
+        public PieMenuMode DoubleTapMode { get; set; } = PieMenuMode.Launcher;
     }
 
     public class PieMenuItemData
@@ -71,5 +76,6 @@ namespace Pie.Models
         public PieMenuItemType Type { get; set; } = PieMenuItemType.Application;
         public string? CustomIconPath { get; set; }
         public int Order { get; set; }
+        public List<GroupAppItem> GroupItems { get; set; } = new();
     }
 }

@@ -10,6 +10,8 @@ using System.Windows.Media;
 using Microsoft.Win32;
 using Pie.Models;
 using Pie.Services;
+using Pie.Controls;
+using Pie.Helpers;
 
 namespace Pie.Views
 {
@@ -20,6 +22,7 @@ namespace Pie.Views
         private string _currentTab = "General";
         private bool _isCapturingHotkey;
         private TextBox? _hotkeyTextBox;
+        private PieMenuControl? _previewControl;
 
         public SettingsWindow(SettingsService settingsService, WindowService windowService)
         {
@@ -100,25 +103,6 @@ namespace Pie.Views
             hotkeyPanel.Children.Add(_hotkeyTextBox);
             ContentPanel.Children.Add(hotkeyPanel);
 
-            // Long press duration
-            var longPressPanel = CreateSettingRow("Right-Click Hold Duration", "Hold right mouse button to activate (milliseconds)");
-            var longPressSlider = new Slider
-            {
-                Width = 200,
-                Minimum = 500,
-                Maximum = 3000,
-                Value = 2000,
-                TickFrequency = 500,
-                IsSnapToTickEnabled = true
-            };
-            var longPressLabel = new TextBlock { Text = "2000ms", Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
-            longPressSlider.ValueChanged += (s, e) => longPressLabel.Text = $"{(int)e.NewValue}ms";
-            var longPressValuePanel = new StackPanel { Orientation = Orientation.Horizontal };
-            longPressValuePanel.Children.Add(longPressSlider);
-            longPressValuePanel.Children.Add(longPressLabel);
-            longPressPanel.Children.Add(longPressValuePanel);
-            ContentPanel.Children.Add(longPressPanel);
-
             // Default mode
             AddHeader("Default Mode");
             var modePanel = CreateSettingRow("Mode on Activation", "Which mode to show when activated");
@@ -141,6 +125,63 @@ namespace Pie.Views
             };
             modePanel.Children.Add(modeCombo);
             ContentPanel.Children.Add(modePanel);
+
+            // Double-tap settings
+            AddHeader("Double-Tap (3-Finger Gesture)");
+
+            var doubleTapPanel = CreateSettingRow("Enable Double-Tap", "Double-tap 3-finger gesture to open a specific mode");
+            var doubleTapToggle = new CheckBox
+            {
+                IsChecked = settings.DoubleTapEnabled,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            doubleTapToggle.Checked += (s, e) => _settingsService.UpdateSettings(s => s.DoubleTapEnabled = true);
+            doubleTapToggle.Unchecked += (s, e) => _settingsService.UpdateSettings(s => s.DoubleTapEnabled = false);
+            doubleTapPanel.Children.Add(doubleTapToggle);
+            ContentPanel.Children.Add(doubleTapPanel);
+
+            var doubleTapModePanel = CreateSettingRow("Double-Tap Mode", "Which mode to open on double-tap");
+            var doubleTapModeCombo = new ComboBox
+            {
+                Width = 200,
+                Padding = new Thickness(8, 6, 8, 6),
+                SelectedIndex = (int)settings.DoubleTapMode
+            };
+            doubleTapModeCombo.Items.Add("Switcher");
+            doubleTapModeCombo.Items.Add("Launcher");
+            doubleTapModeCombo.Items.Add("Controller");
+            doubleTapModeCombo.Items.Add("Music Remote");
+            doubleTapModeCombo.SelectionChanged += (s, e) =>
+            {
+                if (doubleTapModeCombo.SelectedIndex >= 0)
+                {
+                    _settingsService.UpdateSettings(s => s.DoubleTapMode = (PieMenuMode)doubleTapModeCombo.SelectedIndex);
+                }
+            };
+            doubleTapModePanel.Children.Add(doubleTapModeCombo);
+            ContentPanel.Children.Add(doubleTapModePanel);
+
+            var doubleTapTimeoutPanel = CreateSettingRow("Double-Tap Timeout", "Maximum time between taps (milliseconds)");
+            var doubleTapTimeoutSlider = new Slider
+            {
+                Width = 200,
+                Minimum = 300,
+                Maximum = 1000,
+                Value = settings.DoubleTapTimeoutMs,
+                TickFrequency = 100,
+                IsSnapToTickEnabled = true
+            };
+            var doubleTapTimeoutLabel = new TextBlock { Text = $"{settings.DoubleTapTimeoutMs}ms", Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+            doubleTapTimeoutSlider.ValueChanged += (s, e) =>
+            {
+                doubleTapTimeoutLabel.Text = $"{(int)e.NewValue}ms";
+                _settingsService.UpdateSettings(s => s.DoubleTapTimeoutMs = (int)e.NewValue);
+            };
+            var doubleTapTimeoutValuePanel = new StackPanel { Orientation = Orientation.Horizontal };
+            doubleTapTimeoutValuePanel.Children.Add(doubleTapTimeoutSlider);
+            doubleTapTimeoutValuePanel.Children.Add(doubleTapTimeoutLabel);
+            doubleTapTimeoutPanel.Children.Add(doubleTapTimeoutValuePanel);
+            ContentPanel.Children.Add(doubleTapTimeoutPanel);
 
             AddHeader("Appearance");
 
@@ -245,7 +286,7 @@ namespace Pie.Views
 
             var addInput = new TextBox
             {
-                Width = 200,
+                Width = 150,
                 Padding = new Thickness(8, 6, 8, 6),
                 Margin = new Thickness(0, 0, 8, 0)
             };
@@ -264,7 +305,7 @@ namespace Pie.Views
             };
             buttonPanel.Children.Add(addBtn);
 
-            var removeBtn = new Button { Content = "Remove Selected", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(8, 0, 0, 0) };
+            var removeBtn = new Button { Content = "Remove", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(8, 0, 0, 0) };
             removeBtn.Click += (s, e) =>
             {
                 if (excludedList.SelectedItem != null)
@@ -281,6 +322,70 @@ namespace Pie.Views
             buttonPanel.Children.Add(removeBtn);
 
             ContentPanel.Children.Add(buttonPanel);
+
+            var buttonPanel2 = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
+
+            var browseBtn = new Button { Content = "Browse...", Style = FindResource("SecondaryButtonStyle") as Style };
+            browseBtn.Click += (s, e) =>
+            {
+                var dialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Filter = "Applications (*.exe)|*.exe",
+                    Title = "Select Application to Exclude"
+                };
+                if (dialog.ShowDialog() == true)
+                {
+                    var processName = System.IO.Path.GetFileNameWithoutExtension(dialog.FileName);
+                    if (!settings.ExcludedApps.Contains(processName))
+                    {
+                        settings.ExcludedApps.Add(processName);
+                        excludedList.Items.Add(processName);
+                        _settingsService.SaveSettings();
+                    }
+                }
+            };
+            buttonPanel2.Children.Add(browseBtn);
+
+            var fromRunningBtn = new Button { Content = "From Running Apps", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(8, 0, 0, 0) };
+            fromRunningBtn.Click += (s, e) =>
+            {
+                var picker = new RunningAppsPickerWindow(_windowService) { Owner = this };
+                if (picker.ShowDialog() == true && picker.SelectedProcessNames.Count > 0)
+                {
+                    foreach (var processName in picker.SelectedProcessNames)
+                    {
+                        if (!settings.ExcludedApps.Contains(processName))
+                        {
+                            settings.ExcludedApps.Add(processName);
+                            excludedList.Items.Add(processName);
+                        }
+                    }
+                    _settingsService.SaveSettings();
+                }
+            };
+            buttonPanel2.Children.Add(fromRunningBtn);
+
+            var fromInstalledBtn = new Button { Content = "Browse Installed", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(8, 0, 0, 0) };
+            fromInstalledBtn.Click += (s, e) =>
+            {
+                var picker = new InstalledAppsPickerWindow { Owner = this };
+                if (picker.ShowDialog() == true && picker.SelectedApps.Count > 0)
+                {
+                    foreach (var app in picker.SelectedApps)
+                    {
+                        var processName = System.IO.Path.GetFileNameWithoutExtension(app.Path);
+                        if (!settings.ExcludedApps.Contains(processName))
+                        {
+                            settings.ExcludedApps.Add(processName);
+                            excludedList.Items.Add(processName);
+                        }
+                    }
+                    _settingsService.SaveSettings();
+                }
+            };
+            buttonPanel2.Children.Add(fromInstalledBtn);
+
+            ContentPanel.Children.Add(buttonPanel2);
         }
 
         private void LoadLauncherSettings()
@@ -289,30 +394,40 @@ namespace Pie.Views
             var settings = _settingsService.Settings;
 
             AddHeader("Launcher Items");
-            AddDescription("Add applications, folders, and files to your launcher menu.");
+            AddDescription("Add applications, folders, and groups. Drag and drop to reorder.");
+
+            // Main Grid layout for List + Preview
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(300) });
+            grid.Margin = new Thickness(0, 16, 0, 0);
+
+            // Left Column: List and Buttons
+            var leftPanel = new StackPanel { Margin = new Thickness(0, 0, 16, 0) };
 
             var itemsList = new ListBox
             {
-                Height = 250,
-                Margin = new Thickness(0, 8, 0, 8),
+                Height = 300,
+                Margin = new Thickness(0, 0, 0, 8),
                 Background = Brushes.White,
-                BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200))
+                BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
+                AllowDrop = true
             };
 
-            RefreshLauncherList(itemsList);
+            // Enable Drag and Drop
+            itemsList.PreviewMouseLeftButtonDown += ItemsList_PreviewMouseLeftButtonDown;
+            itemsList.Drop += ItemsList_Drop;
 
-            ContentPanel.Children.Add(itemsList);
+            leftPanel.Children.Add(itemsList);
 
-            var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
+            // Buttons
+            var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
 
-            var addAppBtn = new Button { Content = "Add Application", Style = FindResource("ModernButtonStyle") as Style };
+            // ... Add App Button ...
+            var addAppBtn = new Button { Content = "App", Style = FindResource("ModernButtonStyle") as Style, Margin = new Thickness(0, 0, 8, 0) };
             addAppBtn.Click += (s, e) =>
             {
-                var dialog = new OpenFileDialog
-                {
-                    Filter = "Applications (*.exe)|*.exe|All Files (*.*)|*.*",
-                    Title = "Select Application"
-                };
+                var dialog = new OpenFileDialog { Filter = "Applications (*.exe)|*.exe|All Files (*.*)|*.*", Title = "Select Application" };
                 if (dialog.ShowDialog() == true)
                 {
                     var newItem = new PieMenuItemData
@@ -329,19 +444,14 @@ namespace Pie.Views
             };
             buttonPanel.Children.Add(addAppBtn);
 
-            var addFolderBtn = new Button { Content = "Add Folder", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(8, 0, 0, 0) };
+            // ... Folder Button ...
+            var addFolderBtn = new Button { Content = "Folder", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(0, 0, 8, 0) };
             addFolderBtn.Click += (s, e) =>
             {
                 var dialog = new System.Windows.Forms.FolderBrowserDialog();
                 if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
-                    var newItem = new PieMenuItemData
-                    {
-                        Name = Path.GetFileName(dialog.SelectedPath),
-                        Path = dialog.SelectedPath,
-                        Type = PieMenuItemType.Folder,
-                        Order = settings.LauncherItems.Count
-                    };
+                    var newItem = new PieMenuItemData { Name = Path.GetFileName(dialog.SelectedPath), Path = dialog.SelectedPath, Type = PieMenuItemType.Folder, Order = settings.LauncherItems.Count };
                     settings.LauncherItems.Add(newItem);
                     _settingsService.SaveSettings();
                     RefreshLauncherList(itemsList);
@@ -349,28 +459,66 @@ namespace Pie.Views
             };
             buttonPanel.Children.Add(addFolderBtn);
 
-            var browseInstalledBtn = new Button { Content = "Browse Installed", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(8, 0, 0, 0) };
+            // ... Installed Button ...
+            var browseInstalledBtn = new Button { Content = "Installed", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(0, 0, 8, 0) };
             browseInstalledBtn.Click += (s, e) =>
             {
                 var picker = new InstalledAppsPickerWindow { Owner = this };
-                if (picker.ShowDialog() == true && picker.SelectedApp != null)
+                if (picker.ShowDialog() == true && picker.SelectedApps.Count > 0)
                 {
-                    var app = picker.SelectedApp;
-                    var newItem = new PieMenuItemData
+                    foreach (var app in picker.SelectedApps)
                     {
-                        Name = app.Name,
-                        Path = app.Path,
-                        Type = PieMenuItemType.Application,
-                        Order = settings.LauncherItems.Count
-                    };
-                    settings.LauncherItems.Add(newItem);
+                        var newItem = new PieMenuItemData { Name = app.Name, Path = app.Path, Type = PieMenuItemType.Application, Order = settings.LauncherItems.Count };
+                        settings.LauncherItems.Add(newItem);
+                    }
                     _settingsService.SaveSettings();
                     RefreshLauncherList(itemsList);
                 }
             };
             buttonPanel.Children.Add(browseInstalledBtn);
 
-            var removeBtn = new Button { Content = "Remove", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(8, 0, 0, 0) };
+            // ... Group Button ...
+            var createGroupBtn = new Button { Content = "Group", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(0, 0, 8, 0) };
+            createGroupBtn.Click += (s, e) =>
+            {
+                var editor = new GroupEditorWindow { Owner = this };
+                if (editor.ShowDialog() == true)
+                {
+                    var newGroup = new PieMenuItemData { Name = editor.GroupName, Type = PieMenuItemType.Group, Order = settings.LauncherItems.Count, GroupItems = editor.GroupApps.ToList() };
+                    settings.LauncherItems.Add(newGroup);
+                    _settingsService.SaveSettings();
+                    RefreshLauncherList(itemsList);
+                }
+            };
+            buttonPanel.Children.Add(createGroupBtn);
+
+            leftPanel.Children.Add(buttonPanel);
+
+            // Row 2 Buttons (Edit, Remove)
+            var buttonPanel2 = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
+
+            var editBtn = new Button { Content = "Edit", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(0, 0, 8, 0) };
+            editBtn.Click += (s, e) =>
+            {
+                if (itemsList.SelectedItem is ListBoxItem selectedItem && selectedItem.Tag is string id)
+                {
+                    var item = settings.LauncherItems.FirstOrDefault(i => i.Id == id);
+                    if (item != null && item.Type == PieMenuItemType.Group)
+                    {
+                        var editor = new GroupEditorWindow(item.Name, item.GroupItems) { Owner = this };
+                        if (editor.ShowDialog() == true)
+                        {
+                            item.Name = editor.GroupName;
+                            item.GroupItems = editor.GroupApps.ToList();
+                            _settingsService.SaveSettings();
+                            RefreshLauncherList(itemsList);
+                        }
+                    }
+                }
+            };
+            buttonPanel2.Children.Add(editBtn);
+
+            var removeBtn = new Button { Content = "Remove", Style = FindResource("SecondaryButtonStyle") as Style };
             removeBtn.Click += (s, e) =>
             {
                 if (itemsList.SelectedItem is ListBoxItem selectedItem && selectedItem.Tag is string id)
@@ -384,21 +532,144 @@ namespace Pie.Views
                     }
                 }
             };
-            buttonPanel.Children.Add(removeBtn);
+            buttonPanel2.Children.Add(removeBtn);
 
-            ContentPanel.Children.Add(buttonPanel);
+            leftPanel.Children.Add(buttonPanel2);
 
-            // Move buttons
-            var movePanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
-            var moveUpBtn = new Button { Content = "Move Up", Style = FindResource("SecondaryButtonStyle") as Style };
-            moveUpBtn.Click += (s, e) => MoveItem(itemsList, -1);
-            movePanel.Children.Add(moveUpBtn);
+            Grid.SetColumn(leftPanel, 0);
+            grid.Children.Add(leftPanel);
 
-            var moveDownBtn = new Button { Content = "Move Down", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(8, 0, 0, 0) };
-            moveDownBtn.Click += (s, e) => MoveItem(itemsList, 1);
-            movePanel.Children.Add(moveDownBtn);
+            // Right Column: Preview
+            var rightPanel = new StackPanel();
+            rightPanel.Children.Add(new TextBlock { Text = "Preview", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 8), HorizontalAlignment = HorizontalAlignment.Center });
 
-            ContentPanel.Children.Add(movePanel);
+            var previewBorder = new Border
+            {
+                Width = 280,
+                Height = 280,
+                Background = new SolidColorBrush(Color.FromRgb(240, 240, 245)),
+                CornerRadius = new CornerRadius(16),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(220, 220, 220)),
+                BorderThickness = new Thickness(1),
+                ClipToBounds = true
+            };
+
+            // Initialize Preview Control
+            _previewControl = new PieMenuControl
+            {
+                MenuRadius = 100, // Smaller for preview
+                IconSize = 32,
+                InnerRadius = 30,
+                Width = 280,
+                Height = 280
+            };
+
+            previewBorder.Child = _previewControl;
+            rightPanel.Children.Add(previewBorder);
+
+            Grid.SetColumn(rightPanel, 1);
+            grid.Children.Add(rightPanel);
+
+            ContentPanel.Children.Add(grid);
+
+            // Initial Load
+            RefreshLauncherList(itemsList);
+        }
+
+        // Drag and Drop Handlers
+        private Point _dragStartPoint;
+
+        private void ItemsList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _dragStartPoint = e.GetPosition(null);
+        }
+
+        private void ItemsList_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed && sender is ListBox listBox)
+            {
+                Point mousePos = e.GetPosition(null);
+                Vector diff = _dragStartPoint - mousePos;
+
+                if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                    Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+                {
+                    if (listBox.SelectedItem is ListBoxItem selectedItem)
+                    {
+                        DragDrop.DoDragDrop(listBox, selectedItem, DragDropEffects.Move);
+                    }
+                }
+            }
+        }
+
+        private void ItemsList_Drop(object sender, DragEventArgs e)
+        {
+            if (sender is ListBox listBox && e.Data.GetData(typeof(ListBoxItem)) is ListBoxItem droppedData)
+            {
+                var target = ((UIElement)e.OriginalSource).FindVisualParent<ListBoxItem>();
+                if (target != null && target != droppedData)
+                {
+                    string sourceId = (string)droppedData.Tag;
+                    string targetId = (string)target.Tag;
+
+                    var items = _settingsService.Settings.LauncherItems.OrderBy(i => i.Order).ToList();
+                    var sourceItem = items.FirstOrDefault(i => i.Id == sourceId);
+                    var targetItem = items.FirstOrDefault(i => i.Id == targetId);
+
+                    if (sourceItem != null && targetItem != null)
+                    {
+                        int sourceIndex = items.IndexOf(sourceItem);
+                        int targetIndex = items.IndexOf(targetItem);
+
+                        items.RemoveAt(sourceIndex);
+                        items.Insert(targetIndex, sourceItem);
+
+                        // Update orders
+                        for (int i = 0; i < items.Count; i++)
+                        {
+                            items[i].Order = i;
+                        }
+
+                        _settingsService.SaveSettings();
+                        RefreshLauncherList(listBox);
+                    }
+                }
+            }
+        }
+
+        private void UpdatePreview()
+        {
+            if (_previewControl == null) return;
+
+            var items = new List<PieMenuItem>();
+            foreach (var itemData in _settingsService.Settings.LauncherItems.OrderBy(i => i.Order))
+            {
+                var item = new PieMenuItem
+                {
+                    Id = itemData.Id,
+                    Name = itemData.Name,
+                    Type = itemData.Type
+                };
+
+                // Simplified icon loading for preview to avoid thread issues or lag
+                if (itemData.Type == PieMenuItemType.Group && itemData.GroupItems.Count > 0)
+                {
+                     item.Icon = _windowService.CreateStackedGroupIcon(itemData.GroupItems.Select(g => g.Path), 32);
+                }
+                else if (itemData.Type == PieMenuItemType.Folder)
+                {
+                    item.Icon = _windowService.GetFolderIcon();
+                }
+                else
+                {
+                    item.Icon = _windowService.GetIconFromFile(itemData.Path);
+                }
+
+                items.Add(item);
+            }
+
+            _previewControl.SetItems(items);
+            _previewControl.ShowImmediate(); // Show without animation
         }
 
         private void RefreshLauncherList(ListBox itemsList)
@@ -406,14 +677,25 @@ namespace Pie.Views
             itemsList.Items.Clear();
             foreach (var item in _settingsService.Settings.LauncherItems.OrderBy(i => i.Order))
             {
+                string displayText;
+                if (item.Type == PieMenuItemType.Group)
+                {
+                    displayText = $"{item.Name} (Group - {item.GroupItems.Count} apps)";
+                }
+                else
+                {
+                    displayText = $"{item.Name} ({item.Type})";
+                }
+
                 var listItem = new ListBoxItem
                 {
-                    Content = $"{item.Name} ({item.Type})",
+                    Content = displayText,
                     Tag = item.Id,
                     Padding = new Thickness(8, 4, 8, 4)
                 };
                 itemsList.Items.Add(listItem);
             }
+            UpdatePreview();
         }
 
         private void MoveItem(ListBox itemsList, int direction)
@@ -664,12 +946,38 @@ namespace Pie.Views
 
             var version = new TextBlock
             {
-                Text = "Version 1.0.0",
+                Text = "Version 0.2-alpha",
                 FontSize = 14,
                 Foreground = new SolidColorBrush(Color.FromRgb(128, 128, 128)),
-                Margin = new Thickness(0, 0, 0, 24)
+                Margin = new Thickness(0, 0, 0, 8)
             };
             ContentPanel.Children.Add(version);
+
+            var madeBy = new TextBlock
+            {
+                Text = "Made by Devank",
+                FontSize = 14,
+                Margin = new Thickness(0, 0, 0, 4)
+            };
+            ContentPanel.Children.Add(madeBy);
+
+            var githubLink = new TextBlock
+            {
+                FontSize = 14,
+                Margin = new Thickness(0, 0, 0, 24)
+            };
+            var hyperlink = new System.Windows.Documents.Hyperlink
+            {
+                NavigateUri = new Uri("https://github.com/DevankU")
+            };
+            hyperlink.Inlines.Add("github.com/DevankU");
+            hyperlink.RequestNavigate += (s, e) =>
+            {
+                Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+                e.Handled = true;
+            };
+            githubLink.Inlines.Add(hyperlink);
+            ContentPanel.Children.Add(githubLink);
 
             var description = new TextBlock
             {
@@ -696,7 +1004,7 @@ namespace Pie.Views
                        "• Controller Mode - App-specific keyboard shortcuts\n" +
                        "• Music Remote - Control media playback\n" +
                        "• Keyboard hotkey (Ctrl+Space) or touchpad gesture activation\n" +
-                       "• Smooth macOS-style animations",
+                       "• Fluid animations",
                 TextWrapping = TextWrapping.Wrap,
                 FontSize = 13,
                 Margin = new Thickness(0, 0, 0, 24)

@@ -117,6 +117,19 @@ namespace Pie
 
         private System.Drawing.Icon CreateTrayIcon()
         {
+            try
+            {
+                var streamInfo = GetResourceStream(new Uri("pack://application:,,,/Pie.ico"));
+                if (streamInfo != null)
+                {
+                    return new System.Drawing.Icon(streamInfo.Stream);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogService.Warning($"Failed to load Pie.ico for tray icon: {ex.Message}");
+            }
+
             using var bitmap = new System.Drawing.Bitmap(32, 32);
             using var graphics = System.Drawing.Graphics.FromImage(bitmap);
             graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
@@ -155,6 +168,7 @@ namespace Pie
         }
 
         private DateTime _lastHotkeyTime = DateTime.MinValue;
+        private DateTime _lastMiddleButtonTime = DateTime.MinValue;
 
         private void RegisterHotkey()
         {
@@ -204,12 +218,31 @@ namespace Pie
             {
                 Dispatcher.Invoke(() =>
                 {
-                    LogService.Debug($"Middle button handler - IsVisible: {_pieMenuWindow.IsVisible}, IsClosing: {_pieMenuWindow.IsClosing}");
+                    var now = DateTime.Now;
+                    var settings = _settingsService.Settings;
+                    var timeSinceLastTap = (now - _lastMiddleButtonTime).TotalMilliseconds;
+
+                    LogService.Debug($"Middle button handler - IsVisible: {_pieMenuWindow.IsVisible}, IsClosing: {_pieMenuWindow.IsClosing}, TimeSinceLastTap: {timeSinceLastTap}ms");
+
+                    // Check for double-tap
+                    if (settings.DoubleTapEnabled && timeSinceLastTap < settings.DoubleTapTimeoutMs && timeSinceLastTap > 50)
+                    {
+                        LogService.Debug($"Double-tap detected! Opening {settings.DoubleTapMode} mode");
+                        _lastMiddleButtonTime = DateTime.MinValue; // Reset to prevent triple-tap
+                        if (_pieMenuWindow.IsVisible && !_pieMenuWindow.IsClosing)
+                        {
+                            _pieMenuWindow.CloseMenu();
+                        }
+                        ShowPieMenu(settings.DoubleTapMode);
+                        return;
+                    }
+
+                    _lastMiddleButtonTime = now;
 
                     if (!_pieMenuWindow.IsVisible || _pieMenuWindow.IsClosing)
                     {
                         LogService.Debug("Middle mouse trigger - showing pie menu");
-                        ShowPieMenu(_settingsService.Settings.DefaultMode);
+                        ShowPieMenu(settings.DefaultMode);
                     }
                     else if (DateTime.Now >= _pieMenuWindow.CanToggleCloseAfter)
                     {

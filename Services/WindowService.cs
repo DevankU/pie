@@ -68,6 +68,7 @@ namespace Pie.Services
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
         private readonly SettingsService _settingsService;
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ImageSource> _fileIconCache = new();
 
         public WindowService(SettingsService settingsService)
         {
@@ -77,7 +78,7 @@ namespace Pie.Services
         public List<PieMenuItem> GetRunningApplications()
         {
             var apps = new List<PieMenuItem>();
-            var processedProcessIds = new HashSet<uint>();
+            var processedHandles = new HashSet<IntPtr>();
             var excludedApps = _settingsService.Settings.ExcludedApps
                 .Select(a => a.ToLowerInvariant())
                 .ToHashSet();
@@ -89,17 +90,15 @@ namespace Pie.Services
                 int length = GetWindowTextLength(hWnd);
                 if (length == 0) return true;
 
-                // Check window styles
                 int style = GetWindowLong(hWnd, GWL_STYLE);
                 int exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
 
-                // Skip tool windows without app window style
                 if ((exStyle & (int)WS_EX_TOOLWINDOW) != 0 && (exStyle & (int)WS_EX_APPWINDOW) == 0)
                     return true;
 
-                GetWindowThreadProcessId(hWnd, out uint processId);
+                if (processedHandles.Contains(hWnd)) return true;
 
-                if (processedProcessIds.Contains(processId)) return true;
+                GetWindowThreadProcessId(hWnd, out uint processId);
 
                 try
                 {
@@ -133,7 +132,7 @@ namespace Pie.Services
                     };
 
                     apps.Add(item);
-                    processedProcessIds.Add(processId);
+                    processedHandles.Add(hWnd);
                 }
                 catch { }
 
@@ -192,6 +191,9 @@ namespace Pie.Services
 
         public ImageSource? GetIconFromFile(string filePath)
         {
+            if (string.IsNullOrEmpty(filePath)) return null;
+            if (_fileIconCache.TryGetValue(filePath, out var cached)) return cached;
+
             try
             {
                 if (!File.Exists(filePath)) return null;
@@ -199,10 +201,14 @@ namespace Pie.Services
                 using var icon = Icon.ExtractAssociatedIcon(filePath);
                 if (icon == null) return null;
 
-                return Imaging.CreateBitmapSourceFromHIcon(
+                var image = Imaging.CreateBitmapSourceFromHIcon(
                     icon.Handle,
                     Int32Rect.Empty,
                     BitmapSizeOptions.FromEmptyOptions());
+                
+                image.Freeze();
+                _fileIconCache.TryAdd(filePath, image);
+                return image;
             }
             catch
             {
@@ -212,6 +218,9 @@ namespace Pie.Services
 
         public ImageSource? GetFolderIcon()
         {
+            const string cacheKey = "::system_folder_icon::";
+            if (_fileIconCache.TryGetValue(cacheKey, out var cached)) return cached;
+
             try
             {
                 var shellPath = Environment.GetFolderPath(Environment.SpecialFolder.System);
@@ -226,7 +235,60 @@ namespace Pie.Services
                     BitmapSizeOptions.FromEmptyOptions());
 
                 DestroyIcon(hIcon);
+                bitmapSource.Freeze();
+                _fileIconCache.TryAdd(cacheKey, bitmapSource);
                 return bitmapSource;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public ImageSource? CreateStackedGroupIcon(IEnumerable<string> appPaths, int size = 48)
+        {
+            try
+            {
+                var paths = appPaths.Take(4).ToList();
+                if (paths.Count == 0) return null;
+
+                int canvasSize = size + 16;
+                var drawingVisual = new System.Windows.Media.DrawingVisual();
+
+                using (var context = drawingVisual.RenderOpen())
+                {
+                    int offset = 0;
+                    int offsetStep = paths.Count switch
+                    {
+                        1 => 0,
+                        2 => 10,
+                        3 => 7,
+                        _ => 5
+                    };
+
+                    int iconSize = paths.Count switch
+                    {
+                        1 => size,
+                        2 => (int)(size * 0.75),
+                        _ => (int)(size * 0.65)
+                    };
+
+                    foreach (var path in paths)
+                    {
+                        var iconSource = GetIconFromFile(path);
+                        if (iconSource != null)
+                        {
+                            context.DrawImage(iconSource, new Rect(offset, offset, iconSize, iconSize));
+                        }
+                        offset += offsetStep;
+                    }
+                }
+
+                var renderTarget = new RenderTargetBitmap(canvasSize, canvasSize, 96, 96, PixelFormats.Pbgra32);
+                renderTarget.Render(drawingVisual);
+                renderTarget.Freeze();
+
+                return renderTarget;
             }
             catch
             {

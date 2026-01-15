@@ -1,0 +1,42 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers on tags like v1.0, v2.0.1, etc.
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: windows-latest
+    permissions:
+      contents: write    # Needed to create releases
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '6.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore Pie.csproj
+
+    - name: Build
+      run: dotnet build Pie.csproj --configuration Release --no-restore
+
+    - name: Publish (Single File)
+      run: dotnet publish Pie.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish
+
+    - name: Zip Release
+      shell: powershell
+      run: Compress-Archive -Path ./publish/* -DestinationPath ./Pie-win-x64.zip
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: Pie-win-x64.zip
+        generate_release_notes: true

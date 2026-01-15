@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Pie.Services
 {
@@ -16,7 +17,7 @@ namespace Pie.Services
     {
         private static readonly string LogDirectory;
         private static readonly string LogFilePath;
-        private static readonly object LockObj = new();
+        private static readonly System.Collections.Concurrent.BlockingCollection<string> _logQueue = new();
         private static bool _isDebugMode;
 
         static LogService()
@@ -38,6 +39,23 @@ namespace Pie.Services
 #if DEBUG
             _isDebugMode = true;
 #endif
+            // Start background logging task
+            Task.Run(ProcessLogQueue);
+        }
+
+        private static void ProcessLogQueue()
+        {
+            foreach (var logEntry in _logQueue.GetConsumingEnumerable())
+            {
+                try
+                {
+                    File.AppendAllText(LogFilePath, logEntry + Environment.NewLine);
+                }
+                catch
+                {
+                    // Ignore logging errors to prevent crash
+                }
+            }
         }
 
         public static void Debug(string message)
@@ -92,18 +110,8 @@ namespace Pie.Services
             // Invoke event
             LogMessage?.Invoke(logEntry);
 
-            // Write to log file
-            try
-            {
-                lock (LockObj)
-                {
-                    File.AppendAllText(LogFilePath, logEntry + Environment.NewLine);
-                }
-            }
-            catch
-            {
-                // Ignore file write errors
-            }
+            // Queue for file writing
+            _logQueue.Add(logEntry);
         }
 
         public static string GetLogFilePath() => LogFilePath;

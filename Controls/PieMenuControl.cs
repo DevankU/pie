@@ -96,7 +96,6 @@ namespace Pie.Controls
 
         private void CreateBackground()
         {
-            // Outer background circle with macOS-style blur effect
             _backgroundCircle = new Ellipse
             {
                 Width = MenuRadius * 2 + IconSize + 20,
@@ -217,6 +216,10 @@ namespace Pie.Controls
 
         private PieMenuItemVisual CreateItemVisual(PieMenuItem item, double x, double y, int index)
         {
+            var transformGroup = new TransformGroup();
+            transformGroup.Children.Add(new ScaleTransform(1, 1));
+            transformGroup.Children.Add(new TranslateTransform(0, 0));
+
             var container = new Border
             {
                 Width = IconSize + 16,
@@ -233,8 +236,8 @@ namespace Pie.Controls
                     Opacity = 0.15
                 },
                 RenderTransformOrigin = new Point(0.5, 0.5),
-                RenderTransform = new ScaleTransform(1, 1),
-                Opacity = 0, // Start invisible for animation
+                RenderTransform = transformGroup,
+                Opacity = 0,
                 Tag = index
             };
 
@@ -294,84 +297,152 @@ namespace Pie.Controls
             SetTop(_centerLabelBorder, _centerY - _centerLabelBorder.DesiredSize.Height / 2);
         }
 
+        public void ShowImmediate()
+        {
+            if (_backgroundCircle != null)
+            {
+                _backgroundCircle.Opacity = 1;
+                _backgroundCircle.RenderTransform = new ScaleTransform(1, 1);
+            }
+
+            if (_centerCircle != null)
+            {
+                _centerCircle.Opacity = 1;
+                _centerCircle.RenderTransform = new ScaleTransform(1, 1);
+            }
+
+            foreach (var visual in _itemVisuals)
+            {
+                visual.Container.Opacity = 1;
+                var transformGroup = new TransformGroup();
+                transformGroup.Children.Add(new ScaleTransform(1, 1));
+                transformGroup.Children.Add(new TranslateTransform(0, 0));
+                visual.Container.RenderTransform = transformGroup;
+            }
+        }
+
         public void AnimateIn()
         {
             LogService.Debug("AnimateIn called");
             _isAnimatingIn = true;
-            // Increased duration for smoother effect
-            var duration = TimeSpan.FromMilliseconds(400);
-            var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
 
-            // Animate background
+            var duration = TimeSpan.FromMilliseconds(380);
+            var springEasing = new ElasticEase { Oscillations = 1, Springiness = 6, EasingMode = EasingMode.EaseOut };
+            var backEasing = new BackEase { Amplitude = 0.6, EasingMode = EasingMode.EaseOut };
+
             if (_backgroundCircle != null)
             {
+                var transformGroup = new TransformGroup();
                 var scaleTransform = new ScaleTransform(0.8, 0.8);
+                var rotateTransform = new RotateTransform(-20);
+                transformGroup.Children.Add(scaleTransform);
+                transformGroup.Children.Add(rotateTransform);
+
                 _backgroundCircle.RenderTransformOrigin = new Point(0.5, 0.5);
-                _backgroundCircle.RenderTransform = scaleTransform;
+                _backgroundCircle.RenderTransform = transformGroup;
                 _backgroundCircle.Opacity = 0;
 
-                var scaleXAnim = new DoubleAnimation(0.8, 1.0, duration) { EasingFunction = easing };
-                var scaleYAnim = new DoubleAnimation(0.8, 1.0, duration) { EasingFunction = easing };
-                var opacityAnim = new DoubleAnimation(0, 1, duration) { EasingFunction = easing };
+                var scaleXAnim = new DoubleAnimation(0.8, 1.0, duration) { EasingFunction = backEasing };
+                var scaleYAnim = new DoubleAnimation(0.8, 1.0, duration) { EasingFunction = backEasing };
+                var rotateAnim = new DoubleAnimation(-20, 0, duration) { EasingFunction = backEasing };
+                var opacityAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200));
 
                 scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnim);
                 scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnim);
+                rotateTransform.BeginAnimation(RotateTransform.AngleProperty, rotateAnim);
                 _backgroundCircle.BeginAnimation(OpacityProperty, opacityAnim);
             }
 
             if (_centerCircle != null)
             {
+                var transformGroup = new TransformGroup();
                 var scaleTransform = new ScaleTransform(0.8, 0.8);
+                var rotateTransform = new RotateTransform(-20);
+                transformGroup.Children.Add(scaleTransform);
+                transformGroup.Children.Add(rotateTransform);
+
                 _centerCircle.RenderTransformOrigin = new Point(0.5, 0.5);
-                _centerCircle.RenderTransform = scaleTransform;
+                _centerCircle.RenderTransform = transformGroup;
                 _centerCircle.Opacity = 0;
 
-                var scaleXAnim = new DoubleAnimation(0.8, 1.0, duration) { EasingFunction = easing };
-                var scaleYAnim = new DoubleAnimation(0.8, 1.0, duration) { EasingFunction = easing };
-                var opacityAnim = new DoubleAnimation(0, 1, duration) { EasingFunction = easing };
+                var scaleXAnim = new DoubleAnimation(0.8, 1.0, duration) { EasingFunction = backEasing };
+                var scaleYAnim = new DoubleAnimation(0.8, 1.0, duration) { EasingFunction = backEasing };
+                var rotateAnim = new DoubleAnimation(-20, 0, duration) { EasingFunction = backEasing };
+                var opacityAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200));
 
                 scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnim);
                 scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnim);
+                rotateTransform.BeginAnimation(RotateTransform.AngleProperty, rotateAnim);
                 _centerCircle.BeginAnimation(OpacityProperty, opacityAnim);
             }
 
-            // Animate items with stagger
             for (int i = 0; i < _itemVisuals.Count; i++)
             {
                 var visual = _itemVisuals[i];
-                // Slightly longer delay for "wave" effect
-                var delay = TimeSpan.FromMilliseconds(i * 40);
-                var itemDuration = TimeSpan.FromMilliseconds(450);
+                var delay = TimeSpan.FromMilliseconds(i * 30);
+                var itemDuration = TimeSpan.FromMilliseconds(400);
 
-                var scaleTransform = visual.Container.RenderTransform as ScaleTransform ?? new ScaleTransform(1, 1);
-                visual.Container.RenderTransform = scaleTransform;
-                scaleTransform.ScaleX = 0.3;
-                scaleTransform.ScaleY = 0.3;
-
-                var scaleXAnim = new DoubleAnimation(0.3, 1.0, itemDuration)
+                var transformGroup = visual.Container.RenderTransform as TransformGroup;
+                if (transformGroup == null || transformGroup.Children.Count < 2)
                 {
-                    EasingFunction = new ElasticEase { Oscillations = 1, Springiness = 7, EasingMode = EasingMode.EaseOut },
+                    transformGroup = new TransformGroup();
+                    transformGroup.Children.Add(new ScaleTransform(1, 1));
+                    transformGroup.Children.Add(new TranslateTransform(0, 0));
+                    visual.Container.RenderTransform = transformGroup;
+                }
+
+                var scaleTransform = transformGroup.Children[0] as ScaleTransform;
+                var translateTransform = transformGroup.Children[1] as TranslateTransform;
+
+                if (scaleTransform != null)
+                {
+                    scaleTransform.ScaleX = 0.5;
+                    scaleTransform.ScaleY = 0.5;
+                }
+
+                double angleRad = Math.Atan2(visual.TargetY - _centerY, visual.TargetX - _centerX);
+                double offsetDistance = 20;
+                if (translateTransform != null)
+                {
+                    translateTransform.X = -Math.Cos(angleRad) * offsetDistance;
+                    translateTransform.Y = -Math.Sin(angleRad) * offsetDistance;
+                }
+
+                var scaleXAnim = new DoubleAnimation(0.5, 1.0, itemDuration)
+                {
+                    EasingFunction = springEasing,
                     BeginTime = delay
                 };
-                var scaleYAnim = new DoubleAnimation(0.3, 1.0, itemDuration)
+                var scaleYAnim = new DoubleAnimation(0.5, 1.0, itemDuration)
                 {
-                    EasingFunction = new ElasticEase { Oscillations = 1, Springiness = 7, EasingMode = EasingMode.EaseOut },
+                    EasingFunction = springEasing,
                     BeginTime = delay
                 };
-                var opacityAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(250))
+                var translateXAnim = new DoubleAnimation(0, itemDuration)
                 {
-                    EasingFunction = easing,
+                    EasingFunction = springEasing,
+                    BeginTime = delay
+                };
+                var translateYAnim = new DoubleAnimation(0, itemDuration)
+                {
+                    EasingFunction = springEasing,
+                    BeginTime = delay
+                };
+                var opacityAnim = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200))
+                {
                     BeginTime = delay
                 };
 
-                scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnim);
-                scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnim);
+                scaleTransform?.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnim);
+                scaleTransform?.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnim);
+                translateTransform?.BeginAnimation(TranslateTransform.XProperty, translateXAnim);
+                translateTransform?.BeginAnimation(TranslateTransform.YProperty, translateYAnim);
                 visual.Container.BeginAnimation(OpacityProperty, opacityAnim);
             }
 
             var timer = new System.Windows.Threading.DispatcherTimer
             {
-                Interval = TimeSpan.FromMilliseconds(600)
+                Interval = TimeSpan.FromMilliseconds(500)
             };
             timer.Tick += (s, e) =>
             {
@@ -383,8 +454,46 @@ namespace Pie.Controls
 
         public void AnimateOut(Action? onComplete = null)
         {
-            var duration = TimeSpan.FromMilliseconds(200);
+            var duration = TimeSpan.FromMilliseconds(180);
             var easing = new CubicEase { EasingMode = EasingMode.EaseIn };
+
+            if (_backgroundCircle != null)
+            {
+                var transformGroup = new TransformGroup();
+                var scaleTransform = new ScaleTransform(1, 1);
+                var rotateTransform = new RotateTransform(0);
+                transformGroup.Children.Add(scaleTransform);
+                transformGroup.Children.Add(rotateTransform);
+
+                _backgroundCircle.RenderTransformOrigin = new Point(0.5, 0.5);
+                _backgroundCircle.RenderTransform = transformGroup;
+
+                var scaleAnim = new DoubleAnimation(1.0, 0.95, duration) { EasingFunction = easing };
+                var rotateAnim = new DoubleAnimation(0, 5, duration) { EasingFunction = easing };
+
+                scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+                scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+                rotateTransform.BeginAnimation(RotateTransform.AngleProperty, rotateAnim);
+            }
+
+            if (_centerCircle != null)
+            {
+                var transformGroup = new TransformGroup();
+                var scaleTransform = new ScaleTransform(1, 1);
+                var rotateTransform = new RotateTransform(0);
+                transformGroup.Children.Add(scaleTransform);
+                transformGroup.Children.Add(rotateTransform);
+
+                _centerCircle.RenderTransformOrigin = new Point(0.5, 0.5);
+                _centerCircle.RenderTransform = transformGroup;
+
+                var scaleAnim = new DoubleAnimation(1.0, 0.95, duration) { EasingFunction = easing };
+                var rotateAnim = new DoubleAnimation(0, 5, duration) { EasingFunction = easing };
+
+                scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+                scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+                rotateTransform.BeginAnimation(RotateTransform.AngleProperty, rotateAnim);
+            }
 
             var opacityAnim = new DoubleAnimation(1, 0, duration)
             {
@@ -453,32 +562,61 @@ namespace Pie.Controls
 
         private void AnimateItemSelected(PieMenuItemVisual visual)
         {
-            var scaleTransform = visual.Container.RenderTransform as ScaleTransform ?? new ScaleTransform(1, 1);
-            visual.Container.RenderTransform = scaleTransform;
+            var transformGroup = visual.Container.RenderTransform as TransformGroup;
+            if (transformGroup == null || transformGroup.Children.Count < 2)
+            {
+                transformGroup = new TransformGroup();
+                transformGroup.Children.Add(new ScaleTransform(1, 1));
+                transformGroup.Children.Add(new TranslateTransform(0, 0));
+                visual.Container.RenderTransform = transformGroup;
+            }
 
-            var duration = TimeSpan.FromMilliseconds(150);
-            var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
+            var scaleTransform = transformGroup.Children[0] as ScaleTransform;
+            var translateTransform = transformGroup.Children[1] as TranslateTransform;
 
-            var scaleXAnim = new DoubleAnimation(1.15, duration) { EasingFunction = easing };
-            var scaleYAnim = new DoubleAnimation(1.15, duration) { EasingFunction = easing };
+            var duration = TimeSpan.FromMilliseconds(180);
+            var springEasing = new ElasticEase { Oscillations = 1, Springiness = 8, EasingMode = EasingMode.EaseOut };
 
-            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnim);
-            scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnim);
+            double angleRad = Math.Atan2(visual.TargetY - _centerY, visual.TargetX - _centerX);
+            double outwardOffset = 15;
+
+            var scaleXAnim = new DoubleAnimation(1.3, duration) { EasingFunction = springEasing };
+            var scaleYAnim = new DoubleAnimation(1.3, duration) { EasingFunction = springEasing };
+            var translateXAnim = new DoubleAnimation(Math.Cos(angleRad) * outwardOffset, duration) { EasingFunction = springEasing };
+            var translateYAnim = new DoubleAnimation(Math.Sin(angleRad) * outwardOffset, duration) { EasingFunction = springEasing };
+
+            scaleTransform?.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnim);
+            scaleTransform?.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnim);
+            translateTransform?.BeginAnimation(TranslateTransform.XProperty, translateXAnim);
+            translateTransform?.BeginAnimation(TranslateTransform.YProperty, translateYAnim);
         }
 
         private void AnimateItemDeselected(PieMenuItemVisual visual)
         {
-            var scaleTransform = visual.Container.RenderTransform as ScaleTransform ?? new ScaleTransform(1, 1);
-            visual.Container.RenderTransform = scaleTransform;
+            var transformGroup = visual.Container.RenderTransform as TransformGroup;
+            if (transformGroup == null || transformGroup.Children.Count < 2)
+            {
+                transformGroup = new TransformGroup();
+                transformGroup.Children.Add(new ScaleTransform(1, 1));
+                transformGroup.Children.Add(new TranslateTransform(0, 0));
+                visual.Container.RenderTransform = transformGroup;
+            }
+
+            var scaleTransform = transformGroup.Children[0] as ScaleTransform;
+            var translateTransform = transformGroup.Children[1] as TranslateTransform;
 
             var duration = TimeSpan.FromMilliseconds(150);
             var easing = new CubicEase { EasingMode = EasingMode.EaseOut };
 
             var scaleXAnim = new DoubleAnimation(1.0, duration) { EasingFunction = easing };
             var scaleYAnim = new DoubleAnimation(1.0, duration) { EasingFunction = easing };
+            var translateXAnim = new DoubleAnimation(0, duration) { EasingFunction = easing };
+            var translateYAnim = new DoubleAnimation(0, duration) { EasingFunction = easing };
 
-            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnim);
-            scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnim);
+            scaleTransform?.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnim);
+            scaleTransform?.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnim);
+            translateTransform?.BeginAnimation(TranslateTransform.XProperty, translateXAnim);
+            translateTransform?.BeginAnimation(TranslateTransform.YProperty, translateYAnim);
         }
 
         private void ShowSegmentHighlight(int index)

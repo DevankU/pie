@@ -4,6 +4,11 @@ obj/
 publish/
 portable/
 publish-small/
+release/
+
+# Zip and Exe
+*.zip
+*.exe
 
 # IDE
 .vs/

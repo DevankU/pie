@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -10,7 +11,15 @@ namespace Pie.Models
         Folder,
         File,
         Action,
-        MediaControl
+        MediaControl,
+        Group
+    }
+
+    public class GroupAppItem
+    {
+        public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Name { get; set; } = string.Empty;
+        public string Path { get; set; } = string.Empty;
     }
 
     public class PieMenuItem
@@ -26,6 +35,7 @@ namespace Pie.Models
         public bool IsRunning { get; set; }
         public IntPtr WindowHandle { get; set; }
         public string? ProcessName { get; set; }
+        public List<GroupAppItem> GroupItems { get; set; } = new();
 
         public PieMenuItem Clone()
         {
@@ -41,7 +51,8 @@ namespace Pie.Models
                 Order = Order,
                 IsRunning = IsRunning,
                 WindowHandle = WindowHandle,
-                ProcessName = ProcessName
+                ProcessName = ProcessName,
+                GroupItems = new List<GroupAppItem>(GroupItems)
             };
         }
     }

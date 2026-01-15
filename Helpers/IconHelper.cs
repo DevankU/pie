@@ -10,8 +10,17 @@ namespace Pie.Helpers
 {
     public static class IconHelper
     {
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, ImageSource> _mediaIconCache = new();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, ImageSource> _actionIconCache = new();
+
         public static ImageSource CreateMediaIcon(string iconType)
         {
+            var key = iconType.ToLowerInvariant();
+            if (_mediaIconCache.TryGetValue(key, out var cached))
+            {
+                return cached;
+            }
+
             using var bitmap = new Bitmap(64, 64);
             using var graphics = Graphics.FromImage(bitmap);
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -90,11 +99,15 @@ namespace Pie.Helpers
             var hBitmap = bitmap.GetHbitmap();
             try
             {
-                return Imaging.CreateBitmapSourceFromHBitmap(
+                var image = Imaging.CreateBitmapSourceFromHBitmap(
                     hBitmap,
                     IntPtr.Zero,
                     Int32Rect.Empty,
                     BitmapSizeOptions.FromEmptyOptions());
+                
+                image.Freeze();
+                _mediaIconCache.TryAdd(key, image);
+                return image;
             }
             finally
             {
@@ -117,6 +130,12 @@ namespace Pie.Helpers
 
         public static ImageSource CreateActionIcon(string iconName)
         {
+            var key = iconName.ToLowerInvariant();
+            if (_actionIconCache.TryGetValue(key, out var cached))
+            {
+                return cached;
+            }
+
             using var bitmap = new Bitmap(64, 64);
             using var graphics = Graphics.FromImage(bitmap);
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -154,11 +173,15 @@ namespace Pie.Helpers
             var hBitmap = bitmap.GetHbitmap();
             try
             {
-                return Imaging.CreateBitmapSourceFromHBitmap(
+                var image = Imaging.CreateBitmapSourceFromHBitmap(
                     hBitmap,
                     IntPtr.Zero,
                     Int32Rect.Empty,
                     BitmapSizeOptions.FromEmptyOptions());
+
+                image.Freeze();
+                _actionIconCache.TryAdd(key, image);
+                return image;
             }
             finally
             {

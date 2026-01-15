@@ -207,12 +207,18 @@ namespace Pie.Views
                     Name = itemData.Name,
                     Path = itemData.Path,
                     Type = itemData.Type,
-                    Order = itemData.Order
+                    Order = itemData.Order,
+                    GroupItems = itemData.GroupItems
                 };
 
                 if (!string.IsNullOrEmpty(itemData.CustomIconPath))
                 {
                     item.Icon = _windowService.GetIconFromFile(itemData.CustomIconPath);
+                }
+                else if (itemData.Type == PieMenuItemType.Group && itemData.GroupItems.Count > 0)
+                {
+                    item.Icon = _windowService.CreateStackedGroupIcon(
+                        itemData.GroupItems.Select(g => g.Path));
                 }
                 else if (itemData.Type == PieMenuItemType.Application)
                 {
@@ -318,6 +324,16 @@ namespace Pie.Views
 
                 case PieMenuItemType.MediaControl:
                     ExecuteMediaControl(item.KeyboardShortcut);
+                    break;
+
+                case PieMenuItemType.Group:
+                    foreach (var groupApp in item.GroupItems)
+                    {
+                        if (!string.IsNullOrEmpty(groupApp.Path))
+                        {
+                            LaunchApplication(groupApp.Path);
+                        }
+                    }
                     break;
             }
         }
