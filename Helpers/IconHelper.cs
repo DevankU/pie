@@ -225,12 +225,86 @@ namespace Pie.Helpers
                 graphics.DrawArc(pen, 16, 16, 32, 32, 45, 270);
                 graphics.DrawLine(pen, 36, 14, 48, 24); // Arrow head attempt
             }
+            else if (key.Contains("command") || key.Contains("cmd") || key.Contains("palette"))
+            {
+                // Command icon (rectangle with loops or simplified grid)
+                graphics.DrawRectangle(pen, 16, 16, 32, 32);
+                graphics.DrawLine(pen, 24, 24, 40, 24);
+                graphics.DrawLine(pen, 24, 32, 40, 32);
+                graphics.DrawLine(pen, 24, 40, 40, 40);
+            }
+            else if (key.Contains("format") || key.Contains("align"))
+            {
+                // Format lines
+                graphics.DrawLine(pen, 16, 16, 48, 16);
+                graphics.DrawLine(pen, 16, 28, 36, 28);
+                graphics.DrawLine(pen, 16, 40, 48, 40);
+            }
+            else if (key.Contains("view") || key.Contains("screen") || key.Contains("zen"))
+            {
+                // Screen / Zen mode
+                graphics.DrawRectangle(pen, 12, 16, 40, 32);
+                graphics.DrawLine(pen, 12, 40, 52, 40); // Bottom bar
+            }
+            else if (key.Contains("split"))
+            {
+                // Split view
+                graphics.DrawRectangle(pen, 12, 16, 40, 32);
+                graphics.DrawLine(pen, 32, 16, 32, 48); // Split line
+            }
+            else if (key.Contains("activity") || key.Contains("list") || key.Contains("task"))
+            {
+                // List icon
+                graphics.FillEllipse(brush, 16, 18, 6, 6);
+                graphics.DrawLine(pen, 28, 20, 48, 20);
+                graphics.FillEllipse(brush, 16, 30, 6, 6);
+                graphics.DrawLine(pen, 28, 32, 48, 32);
+                graphics.FillEllipse(brush, 16, 42, 6, 6);
+                graphics.DrawLine(pen, 28, 44, 48, 44);
+            }
+            else if (key.Contains("up") || key.Contains("level"))
+            {
+                // Up arrow
+                graphics.DrawLine(pen, 32, 48, 32, 16);
+                graphics.DrawLine(pen, 20, 28, 32, 16);
+                graphics.DrawLine(pen, 44, 28, 32, 16);
+            }
+            else if (key.Contains("inprivate") || key.Contains("incognito"))
+            {
+                // Mask/Hat icon
+                graphics.DrawArc(pen, 12, 20, 40, 20, 180, 180); // Hat top
+                graphics.DrawLine(pen, 8, 30, 56, 30); // Brim
+                graphics.DrawEllipse(pen, 16, 36, 12, 12); // Glasses L
+                graphics.DrawEllipse(pen, 36, 36, 12, 12); // Glasses R
+                graphics.DrawLine(pen, 28, 42, 36, 42); // Bridge
+            }
+            else if (key.Contains("book") || key.Contains("read"))
+            {
+                // Book icon
+                graphics.DrawRectangle(pen, 16, 16, 32, 36);
+                graphics.DrawLine(pen, 32, 16, 32, 52); // Spine
+                graphics.DrawLine(pen, 16, 28, 48, 28);
+            }
+            else if (key.Contains("camera") || key.Contains("shot"))
+            {
+                // Camera icon
+                graphics.DrawRectangle(pen, 12, 20, 40, 28);
+                graphics.FillRectangle(brush, 24, 14, 16, 6); // Top
+                graphics.DrawEllipse(pen, 24, 26, 16, 16); // Lens
+            }
             else
             {
-                // Default generic action (3 dots)
-                graphics.FillEllipse(brush, 14, 28, 8, 8);
-                graphics.FillEllipse(brush, 28, 28, 8, 8);
-                graphics.FillEllipse(brush, 42, 28, 8, 8);
+                // Fallback: Draw First Letter
+                string letter = !string.IsNullOrEmpty(iconName) ? iconName.Substring(0, 1).ToUpper() : "?";
+
+                using var font = new Font("Segoe UI", 28, System.Drawing.FontStyle.Bold);
+                var stringFormat = new StringFormat
+                {
+                    Alignment = StringAlignment.Center,
+                    LineAlignment = StringAlignment.Center
+                };
+
+                graphics.DrawString(letter, font, brush, new RectangleF(0, 0, 64, 64), stringFormat);
             }
 
             var hBitmap = bitmap.GetHbitmap();

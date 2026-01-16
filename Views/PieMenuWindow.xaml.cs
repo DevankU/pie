@@ -48,6 +48,8 @@ namespace Pie.Views
 
         public bool IsClosing => _isClosing;
 
+        public event EventHandler? SettingsRequested;
+
         public PieMenuWindow(
             SettingsService settingsService,
             WindowService windowService,
@@ -93,8 +95,38 @@ namespace Pie.Views
             MouseMove += PieMenuWindow_MouseMove;
             MouseLeftButtonUp += PieMenuWindow_MouseLeftButtonUp;
             MouseLeftButtonDown += PieMenuWindow_MouseLeftButtonDown;
+            MouseRightButtonUp += PieMenuWindow_MouseRightButtonUp;
             // Block middle mouse button events from closing the menu
             PreviewMouseDown += PieMenuWindow_PreviewMouseDown;
+            Deactivated += (s, e) =>
+            {
+                if (IsVisible && !_isClosing)
+                {
+                    LogService.Debug("Window deactivated - closing menu");
+                    CloseMenu();
+                }
+            };
+        }
+
+        private void PieMenuWindow_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            // Right-click in the center circle cycles the mode
+            var pos = e.GetPosition(_pieMenuControl);
+            double centerX = _pieMenuControl.ActualWidth / 2;
+            double centerY = _pieMenuControl.ActualHeight / 2;
+            double dx = pos.X - centerX;
+            double dy = pos.Y - centerY;
+            double distance = Math.Sqrt(dx * dx + dy * dy);
+
+            // Inner radius is 50 (defined in PieMenuControl/Settings)
+            double innerRadius = 50;
+
+            if (distance < innerRadius)
+            {
+                LogService.Debug("Right-click in center - cycling mode");
+                CycleMode();
+                e.Handled = true;
+            }
         }
 
         private void InitializeDpiScale()
@@ -127,8 +159,14 @@ namespace Pie.Views
         {
             LogService.Debug($"ShowAtCursor called - mode: {mode}, IsVisible: {IsVisible}, IsClosing: {_isClosing}");
 
-            // Store the foreground window before we take focus (for Controller mode)
-            _originalForegroundWindow = GetForegroundWindow();
+            // Only capture foreground window if the menu is NOT already visible.
+            // If it IS visible (e.g. double-tap switching modes), we want to preserve the original window handle
+            // so Controller mode works correctly.
+            if (!IsVisible)
+            {
+                _originalForegroundWindow = GetForegroundWindow();
+            }
+
             _pendingActionItem = null;
 
             // Cancel any ongoing close animation and reset state
@@ -140,76 +178,89 @@ namespace Pie.Views
                 _pieMenuControl.BeginAnimation(OpacityProperty, null);
             }
 
+            // If switching modes while open, don't hide/flicker. Just update the mode.
             if (IsVisible)
             {
-                LogService.Debug("PieMenu already visible, hiding first");
-                Hide();
+                LogService.Debug("PieMenu already visible, switching mode");
+            }
+            else
+            {
+                // Reset opacity only if opening fresh
+                this.Opacity = 1;
             }
 
             _currentMode = mode;
             _isClosing = false;
-            this.Opacity = 1; // Reset opacity
 
             // --- DPI AWARE POSITIONING ---
-            GetCursorPos(out POINT cursorPos);
+            // Only update position if opening fresh (optional, but prevents jumping if mouse moved slightly)
+            if (!IsVisible)
+            {
+                GetCursorPos(out POINT cursorPos);
 
-            // Use cached DPI settings
-            if (_dpiScaleX == 0 || _dpiScaleY == 0) InitializeDpiScale();
+                if (_dpiScaleX == 0 || _dpiScaleY == 0) InitializeDpiScale();
 
-            // Convert physical pixels (GetCursorPos) to WPF device-independent pixels
-            double cursorX = cursorPos.X / _dpiScaleX;
-            double cursorY = cursorPos.Y / _dpiScaleY;
+                double cursorX = cursorPos.X / _dpiScaleX;
+                double cursorY = cursorPos.Y / _dpiScaleY;
 
-            LogService.Debug($"Physical Cursor: {cursorPos.X},{cursorPos.Y} | DPI Scale: {_dpiScaleX:F2} | Logical Cursor: {cursorX:F0},{cursorY:F0}");
+                double menuSize = (_settingsService.Settings.MenuRadius + _settingsService.Settings.IconSize) * 2 + 40;
+                Width = menuSize;
+                Height = menuSize;
 
-            double menuSize = (_settingsService.Settings.MenuRadius + _settingsService.Settings.IconSize) * 2 + 40;
-            Width = menuSize;
-            Height = menuSize;
+                double left = cursorX - menuSize / 2;
+                double top = cursorY - menuSize / 2;
 
-            // Position centered on logical cursor
-            double left = cursorX - menuSize / 2;
-            double top = cursorY - menuSize / 2;
+                Left = left;
+                Top = top;
+            }
 
-            Left = left;
-            Top = top;
-            LogService.Debug($"Menu position (Logical): {left}, {top}, size: {menuSize}");
+            // Prepare UI state
+            if (!IsVisible)
+            {
+                _pieMenuControl.Visibility = Visibility.Hidden;
+                Show();
+            }
 
-            // Prepare UI state before data is ready
-            _pieMenuControl.Visibility = Visibility.Hidden; // Hide until animation starts
-            Show();
-
-            // Load data asynchronously to prevent UI freeze
+            // Load data asynchronously
             List<PieMenuItem> items;
             if (mode == PieMenuMode.Switcher)
             {
-                // Switcher mode can be slow (enumerating windows), so await it
                 items = await _windowService.GetRunningApplicationsAsync();
             }
             else
             {
-                // Other modes are fast, load synchronously
                 items = GetItemsForMode(mode);
             }
 
             if (items.Count == 0)
             {
                 LogService.Debug($"No items for mode {mode}");
-                Hide();
+                if (!IsVisible) Hide();
+                else CloseMenu(); // Graceful close if empty
                 return;
             }
 
             _pieMenuControl.SetItems(items);
-            // Cancel any ongoing opacity animation and hide control until animation starts
+
+            // Cancel any ongoing opacity animation
             _pieMenuControl.BeginAnimation(System.Windows.UIElement.OpacityProperty, null);
 
-            // Use BeginInvoke to ensure animation starts after window is fully rendered
-            Dispatcher.BeginInvoke(new Action(() =>
+            // If it was already visible, just animate items in directly
+            if (_pieMenuControl.Visibility == Visibility.Visible)
             {
-                _pieMenuControl.Visibility = Visibility.Visible;
-                _pieMenuControl.Opacity = 1;
-                _soundService.PlayActivateSound();
-                _pieMenuControl.AnimateIn();
-            }), System.Windows.Threading.DispatcherPriority.Render);
+                 _pieMenuControl.AnimateIn();
+            }
+            else
+            {
+                // New open - use dispatcher to prevent flash
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    _pieMenuControl.Visibility = Visibility.Visible;
+                    _pieMenuControl.Opacity = 1;
+                    _soundService.PlayActivateSound();
+                    _pieMenuControl.AnimateIn();
+                }), System.Windows.Threading.DispatcherPriority.Render);
+            }
 
             Activate();
 
@@ -217,7 +268,6 @@ namespace Pie.Views
             _ignoreClicksUntil = DateTime.Now.AddMilliseconds(400);
             // Allow toggle close via hotkey/middle button after 700ms
             _canToggleCloseAfter = DateTime.Now.AddMilliseconds(700);
-            LogService.Debug($"Debounce set until {_ignoreClicksUntil:HH:mm:ss.fff}, toggle close after {_canToggleCloseAfter:HH:mm:ss.fff}");
         }
 
         private DateTime _ignoreClicksUntil = DateTime.MinValue;
@@ -344,7 +394,18 @@ namespace Pie.Views
                 return items;
             }
 
-            return new List<PieMenuItem>();
+            // 3. No config found - Return a "Configure" item
+            return new List<PieMenuItem>
+            {
+                new PieMenuItem
+                {
+                    Name = $"Configure {foregroundProcess}",
+                    Type = PieMenuItemType.Action,
+                    Icon = Helpers.IconHelper.CreateActionIcon("settings"),
+                    Id = "::configure_controller::",
+                    ProcessName = foregroundProcess // Store process name for context
+                }
+            };
         }
 
         private List<PieMenuItem> GetMusicRemoteItems()
@@ -404,8 +465,11 @@ namespace Pie.Views
                     break;
 
                 case PieMenuItemType.Action:
-                    // This is now handled in the close callback for proper focus restoration
-                    if (!string.IsNullOrEmpty(item.KeyboardShortcut))
+                    if (item.Id == "::configure_controller::")
+                    {
+                        SettingsRequested?.Invoke(this, EventArgs.Empty);
+                    }
+                    else if (!string.IsNullOrEmpty(item.KeyboardShortcut))
                     {
                         _keyboardService.SendKeyboardShortcut(item.KeyboardShortcut);
                     }
@@ -653,10 +717,24 @@ namespace Pie.Views
 
         public void CycleMode()
         {
-            var modes = Enum.GetValues<PieMenuMode>();
-            int currentIndex = Array.IndexOf(modes, _currentMode);
-            int nextIndex = (currentIndex + 1) % modes.Length;
-            _currentMode = modes[nextIndex];
+            var flow = _settingsService.Settings.RightClickFlow;
+            PieMenuMode nextMode;
+
+            if (flow.TryGetValue(_currentMode, out var targetMode))
+            {
+                nextMode = targetMode;
+            }
+            else
+            {
+                // Fallback if not configured
+                var modes = Enum.GetValues<PieMenuMode>();
+                int currentIndex = Array.IndexOf(modes, _currentMode);
+                int nextIndex = (currentIndex + 1) % modes.Length;
+                nextMode = modes[nextIndex];
+            }
+
+            LogService.Debug($"Cycling mode from {_currentMode} to {nextMode}");
+            ShowAtCursor(nextMode);
         }
     }
 }

@@ -232,10 +232,8 @@ namespace Pie
                     {
                         LogService.Debug($"Double-tap detected! Opening {settings.DoubleTapMode} mode");
                         _lastMiddleButtonTime = DateTime.MinValue; // Reset to prevent triple-tap
-                        if (_pieMenuWindow.IsVisible && !_pieMenuWindow.IsClosing)
-                        {
-                            _pieMenuWindow.CloseMenu();
-                        }
+
+                        // Just call ShowPieMenu, which now handles mode switching gracefully
                         ShowPieMenu(settings.DoubleTapMode);
                         return;
                     }

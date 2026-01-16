@@ -38,6 +38,7 @@ namespace Pie.Views
             LauncherTab.Checked += Tab_Checked;
             ControllerTab.Checked += Tab_Checked;
             MusicTab.Checked += Tab_Checked;
+            GesturesTab.Checked += Tab_Checked;
             AboutTab.Checked += Tab_Checked;
 
             LoadGeneralSettings();
@@ -72,6 +73,9 @@ namespace Pie.Views
                 case "Music Remote":
                     LoadMusicSettings();
                     break;
+                case "Gestures":
+                    LoadGesturesSettings();
+                    break;
                 case "About":
                     LoadAboutContent();
                     break;
@@ -105,29 +109,6 @@ namespace Pie.Views
             hotkeyPanel.Children.Add(_hotkeyTextBox);
             ContentPanel.Children.Add(hotkeyPanel);
 
-            // Default mode
-            AddHeader("Default Mode");
-            var modePanel = CreateSettingRow("Mode on Activation", "Which mode to show when activated");
-            var modeCombo = new ComboBox
-            {
-                Width = 200,
-                Padding = new Thickness(8, 6, 8, 6),
-                SelectedIndex = (int)settings.DefaultMode
-            };
-            modeCombo.Items.Add("Switcher");
-            modeCombo.Items.Add("Launcher");
-            modeCombo.Items.Add("Controller");
-            modeCombo.Items.Add("Music Remote");
-            modeCombo.SelectionChanged += (s, e) =>
-            {
-                if (modeCombo.SelectedIndex >= 0)
-                {
-                    _settingsService.UpdateSettings(s => s.DefaultMode = (PieMenuMode)modeCombo.SelectedIndex);
-                }
-            };
-            modePanel.Children.Add(modeCombo);
-            ContentPanel.Children.Add(modePanel);
-
             // Double-tap settings
             AddHeader("Double-Tap (3-Finger Gesture)");
 
@@ -141,27 +122,6 @@ namespace Pie.Views
             doubleTapToggle.Unchecked += (s, e) => _settingsService.UpdateSettings(s => s.DoubleTapEnabled = false);
             doubleTapPanel.Children.Add(doubleTapToggle);
             ContentPanel.Children.Add(doubleTapPanel);
-
-            var doubleTapModePanel = CreateSettingRow("Double-Tap Mode", "Which mode to open on double-tap");
-            var doubleTapModeCombo = new ComboBox
-            {
-                Width = 200,
-                Padding = new Thickness(8, 6, 8, 6),
-                SelectedIndex = (int)settings.DoubleTapMode
-            };
-            doubleTapModeCombo.Items.Add("Switcher");
-            doubleTapModeCombo.Items.Add("Launcher");
-            doubleTapModeCombo.Items.Add("Controller");
-            doubleTapModeCombo.Items.Add("Music Remote");
-            doubleTapModeCombo.SelectionChanged += (s, e) =>
-            {
-                if (doubleTapModeCombo.SelectedIndex >= 0)
-                {
-                    _settingsService.UpdateSettings(s => s.DoubleTapMode = (PieMenuMode)doubleTapModeCombo.SelectedIndex);
-                }
-            };
-            doubleTapModePanel.Children.Add(doubleTapModeCombo);
-            ContentPanel.Children.Add(doubleTapModePanel);
 
             var doubleTapTimeoutPanel = CreateSettingRow("Double-Tap Timeout", "Maximum time between taps (milliseconds)");
             var doubleTapTimeoutSlider = new Slider
@@ -1357,6 +1317,197 @@ namespace Pie.Views
             ContentPanel.Children.Add(infoPanel);
         }
 
+        private void LoadGesturesSettings()
+        {
+            ContentPanel.Children.Clear();
+            var settings = _settingsService.Settings;
+
+            AddHeader("Gesture Flow Editor");
+            AddDescription("Drag and drop modes to customize your workflow.");
+
+            // 1. Mode Palette (Draggable Sources)
+            var palettePanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(0, 20, 0, 30),
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            palettePanel.Children.Add(CreateModeCard(PieMenuMode.Switcher));
+            palettePanel.Children.Add(CreateModeCard(PieMenuMode.Launcher));
+            palettePanel.Children.Add(CreateModeCard(PieMenuMode.Controller));
+            palettePanel.Children.Add(CreateModeCard(PieMenuMode.MusicRemote));
+
+            ContentPanel.Children.Add(palettePanel);
+
+            // 2. Activation Triggers
+            AddHeader("Activation Triggers");
+            AddDescription("What opens when you tap?");
+
+            var activationGrid = new Grid { Margin = new Thickness(0, 10, 0, 30) };
+            activationGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            activationGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
+            activationGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            // Single Tap Target
+            var singleTapPanel = new StackPanel();
+            singleTapPanel.Children.Add(new TextBlock { Text = "Single Tap (3-Finger)", FontWeight = FontWeights.Medium, Margin = new Thickness(0, 0, 0, 8), HorizontalAlignment = HorizontalAlignment.Center });
+            var singleTapTarget = CreateDropTarget(
+                settings.DefaultMode,
+                (mode) =>
+                {
+                    _settingsService.UpdateSettings(s => s.DefaultMode = mode);
+                    LoadGesturesSettings(); // Refresh
+                });
+            singleTapPanel.Children.Add(singleTapTarget);
+            Grid.SetColumn(singleTapPanel, 0);
+            activationGrid.Children.Add(singleTapPanel);
+
+            // Double Tap Target
+            var doubleTapPanel = new StackPanel();
+            doubleTapPanel.Children.Add(new TextBlock { Text = "Double Tap", FontWeight = FontWeights.Medium, Margin = new Thickness(0, 0, 0, 8), HorizontalAlignment = HorizontalAlignment.Center });
+            var doubleTapTarget = CreateDropTarget(
+                settings.DoubleTapMode,
+                (mode) =>
+                {
+                    _settingsService.UpdateSettings(s => s.DoubleTapMode = mode);
+                    LoadGesturesSettings(); // Refresh
+                });
+            doubleTapPanel.Children.Add(doubleTapTarget);
+            Grid.SetColumn(doubleTapPanel, 2);
+            activationGrid.Children.Add(doubleTapPanel);
+
+            ContentPanel.Children.Add(activationGrid);
+
+            // 3. Right-Click Flow
+            AddHeader("Right-Click Flow");
+            AddDescription("Define the cycle: If you are in Mode A, Right-Click takes you to Mode B.");
+
+            var flowPanel = new StackPanel { Margin = new Thickness(0, 10, 0, 0) };
+
+            foreach (PieMenuMode mode in Enum.GetValues(typeof(PieMenuMode)))
+            {
+                var row = new Grid { Margin = new Thickness(0, 0, 0, 10) };
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) }); // Source Label
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });  // Arrow
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) }); // Target Box
+
+                // Source Mode Label
+                var sourceCard = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(240, 240, 245)),
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(10, 6, 10, 6),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Width = 110
+                };
+                sourceCard.Child = new TextBlock { Text = mode.ToString(), FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center };
+                Grid.SetColumn(sourceCard, 0);
+                row.Children.Add(sourceCard);
+
+                // Arrow
+                var arrow = new TextBlock
+                {
+                    Text = "→",
+                    FontSize = 18,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Foreground = Brushes.Gray
+                };
+                Grid.SetColumn(arrow, 1);
+                row.Children.Add(arrow);
+
+                // Target Drop Zone
+                PieMenuMode? nextMode = null;
+                if (settings.RightClickFlow.ContainsKey(mode))
+                {
+                    nextMode = settings.RightClickFlow[mode];
+                }
+
+                var targetZone = CreateDropTarget(
+                    nextMode,
+                    (droppedMode) =>
+                    {
+                        _settingsService.UpdateSettings(s => s.RightClickFlow[mode] = droppedMode);
+                        LoadGesturesSettings();
+                    },
+                    isFlowTarget: true);
+
+                Grid.SetColumn(targetZone, 2);
+                row.Children.Add(targetZone);
+
+                flowPanel.Children.Add(row);
+            }
+
+            ContentPanel.Children.Add(flowPanel);
+        }
+
+        private UIElement CreateModeCard(PieMenuMode mode)
+        {
+            var card = new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(0, 122, 255)),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(16, 10, 16, 10),
+                Margin = new Thickness(8),
+                Cursor = Cursors.Hand,
+                Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 5, ShadowDepth = 2, Opacity = 0.2 }
+            };
+
+            var text = new TextBlock { Text = mode.ToString(), Foreground = Brushes.White, FontWeight = FontWeights.Bold };
+            card.Child = text;
+
+            card.MouseLeftButtonDown += (s, e) =>
+            {
+                DragDrop.DoDragDrop(card, mode, DragDropEffects.Copy);
+            };
+
+            return card;
+        }
+
+        private UIElement CreateDropTarget(PieMenuMode? currentMode, Action<PieMenuMode> onDrop, bool isFlowTarget = false)
+        {
+            var border = new Border
+            {
+                Background = currentMode.HasValue ? new SolidColorBrush(Color.FromRgb(230, 240, 255)) : Brushes.White,
+                BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
+                BorderThickness = new Thickness(2),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(10),
+                Height = isFlowTarget ? 40 : 60,
+                AllowDrop = true
+            };
+
+            // Dashed border if empty
+            if (!currentMode.HasValue)
+            {
+                border.BorderBrush = new SolidColorBrush(Color.FromRgb(220, 220, 220));
+                // Note: WPF Border doesn't support StrokeDashArray directly, would need a Rectangle/Path,
+                // but solid gray is fine for "empty slot" visual.
+            }
+
+            var content = new TextBlock
+            {
+                Text = currentMode.HasValue ? currentMode.ToString() : "Drop Here",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = currentMode.HasValue ? new SolidColorBrush(Color.FromRgb(0, 122, 255)) : Brushes.Gray,
+                FontWeight = currentMode.HasValue ? FontWeights.Bold : FontWeights.Normal
+            };
+
+            border.Child = content;
+
+            border.Drop += (s, e) =>
+            {
+                if (e.Data.GetData(typeof(PieMenuMode)) is PieMenuMode droppedMode)
+                {
+                    onDrop(droppedMode);
+                }
+            };
+
+            return border;
+        }
+
         private void LoadAboutContent()
         {
             ContentPanel.Children.Clear();
@@ -1372,7 +1523,7 @@ namespace Pie.Views
 
             var version = new TextBlock
             {
-                Text = "Version 0.5-alpha",
+                Text = "Version 0.6-alpha",
                 FontSize = 14,
                 Foreground = new SolidColorBrush(Color.FromRgb(128, 128, 128)),
                 Margin = new Thickness(0, 0, 0, 8)
@@ -1429,8 +1580,10 @@ namespace Pie.Views
                        "• Launcher Mode - Quick access to favorite apps and folders\n" +
                        "• Controller Mode - App-specific keyboard shortcuts\n" +
                        "• Music Remote - Control media playback\n" +
-                       "• Keyboard hotkey (Ctrl+Space) or touchpad gesture activation\n" +
-                       "• Fluid animations",
+                       "• Gesture Flow Editor - Visualize and customize your workflow\n" +
+                       "• Smart Context - Auto-detects active app for Controller\n" +
+                       "• Dynamic Icons - Smart icon generation for actions\n" +
+                       "• Fluid animations & Instant Response",
                 TextWrapping = TextWrapping.Wrap,
                 FontSize = 13,
                 Margin = new Thickness(0, 0, 0, 24)

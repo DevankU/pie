@@ -66,6 +66,16 @@ namespace Pie.Models
         public bool DoubleTapEnabled { get; set; } = true;
         public int DoubleTapTimeoutMs { get; set; } = 700;
         public PieMenuMode DoubleTapMode { get; set; } = PieMenuMode.Launcher;
+
+        // Visual Flow Configuration (Right-Click Cycle)
+        // Key = Current Mode, Value = Next Mode on Right-Click
+        public Dictionary<PieMenuMode, PieMenuMode> RightClickFlow { get; set; } = new()
+        {
+            { PieMenuMode.Switcher, PieMenuMode.Launcher },
+            { PieMenuMode.Launcher, PieMenuMode.Controller },
+            { PieMenuMode.Controller, PieMenuMode.MusicRemote },
+            { PieMenuMode.MusicRemote, PieMenuMode.Switcher }
+        };
     }
 
     public class PieMenuItemData

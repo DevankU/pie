@@ -32,16 +32,20 @@ Pie is a productivity tool that gives you a circular menu (like in video games) 
 
 Activate it with a hotkey (default: `Ctrl+Space`) or a 3-finger tap on your touchpad( in windows settings switch the 3 finger tap -> middle mouse click).
 
-## What's New in v0.5 Alpha 🚀
+## What's New in v0.6 Alpha 🚀
 
+- **Visual Gesture Editor:** Customize your workflow (Tap, Double-Tap, Right-Click) using a new **Drag-and-Drop** interface.
+- **Drag-and-Drop Launcher:** Easily reorder your pinned apps and groups by dragging them in settings.
 - **Smart Controller:** Automatically detects your active app (Chrome, VS Code, etc.) and switches to the correct shortcut preset.
 - **Built-in Presets:** 50+ pre-configured app profiles for Browsers, IDEs, and Creative tools.
 - **Group Launcher:** Organize apps into folders/groups with "stacked" icons.
-- **Improved Settings:**
-  - Real-time preview wheel.
-  - Drag-and-drop reordering.
-  - Import custom JSON presets.
-  - "Browse Running Apps" to quickly add shortcuts.
+- **Dynamic Icons:** Smart icon generation for actions. Shows the first letter (e.g., "O") if no specific icon is found.
+- **Interaction Polish:**
+  - **Click Outside to Close:** Clicking anywhere on the screen closes the menu instantly.
+  - **Right-Click Cycle:** Right-click inside the center ring to switch modes based on your custom flow.
+  - **Focus Fixes:** Controller shortcuts now trigger reliably on the target window.
+- **Performance:** Instant open with no lag, smooth GPU-accelerated animations, and low memory usage.
+- **Improved Settings:** Real-time preview wheel, custom JSON import, and "Browse Running Apps".
 
 ## Features
 

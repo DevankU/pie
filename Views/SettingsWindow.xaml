@@ -124,6 +124,8 @@
                              GroupName="SettingsTabs"/>
                 <RadioButton x:Name="MusicTab" Content="Music Remote" Style="{StaticResource TabButtonStyle}"
                              GroupName="SettingsTabs"/>
+                <RadioButton x:Name="GesturesTab" Content="Gestures" Style="{StaticResource TabButtonStyle}"
+                             GroupName="SettingsTabs"/>
                 <RadioButton x:Name="AboutTab" Content="About" Style="{StaticResource TabButtonStyle}"
                              GroupName="SettingsTabs"/>
             </StackPanel>
