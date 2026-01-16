@@ -32,7 +32,7 @@ jobs:
 
     - name: Copy Changelog to Build
       shell: powershell
-      run: Copy-Item -Path "release/CHANGELOG.md" -Destination "./publish/CHANGELOG.md"
+      run: Copy-Item -Path "CHANGELOG.md" -Destination "./publish/CHANGELOG.md"
 
     - name: Zip Release
       shell: powershell
@@ -43,4 +43,4 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: Pie-win-x64.zip
-        body_path: release/CHANGELOG.md
+        body_path: CHANGELOG.md
