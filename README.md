@@ -32,30 +32,31 @@ Pie is a productivity tool that gives you a circular menu (like in video games) 
 
 Activate it with a hotkey (default: `Ctrl+Space`) or a 3-finger tap on your touchpad( in windows settings switch the 3 finger tap -> middle mouse click).
 
-## What's New in v0.2 Alpha 🚀
+## What's New in v0.5 Alpha 🚀
 
-- **Group Management:** Create app groups (folders) to organize your launcher.
-- **Performance Overhaul:**  async loading and icon caching.
-- **Double-Tap Trigger:** Configure double-tap actions 
-- **Enhanced Settings:**
-  - Drag-and-drop to reorder items.
-  - Multi-select when adding apps.
-  - New "Running Apps" exclusion picker.
-- **Smoother & Faster:** Optimized logging and resource handling.
-
+- **Smart Controller:** Automatically detects your active app (Chrome, VS Code, etc.) and switches to the correct shortcut preset.
+- **Built-in Presets:** 50+ pre-configured app profiles for Browsers, IDEs, and Creative tools.
+- **Group Launcher:** Organize apps into folders/groups with "stacked" icons.
+- **Improved Settings:**
+  - Real-time preview wheel.
+  - Drag-and-drop reordering.
+  - Import custom JSON presets.
+  - "Browse Running Apps" to quickly add shortcuts.
 
 ## Features
 
-- Smooth animations
-- DPI aware (works great on high-res displays)
-- Runs in system tray
-- Customizable hotkeys
-- Multiple modes: Switcher, Launcher, Controller, Music Remote
+- **Switcher Mode**: Alt-Tab replacement. Visual and fast.
+- **Launcher Mode**: Launch apps, folders, and groups.
+- **Controller Mode**: Context-aware shortcuts for your active application.
+- **Music Remote**: Universal media controls.
+- **Fluid Animations**: High-performance rendering with physics-based motion.
+- **DPI Aware**: Crisp visuals on any display scale.
+- **System Tray**: Runs quietly in the background (~150-250 MB RAM).
 
 ## Requirements
 
 - Windows 10/11
-- .NET 6.0 Runtime (or build with self-contained option)
+- .NET 6.0 Runtime (or build self-contained)
 
 ## Installation
 
@@ -65,7 +66,7 @@ Activate it with a hotkey (default: `Ctrl+Space`) or a 3-finger tap on your touc
 
 2. Clone this repo
    ```
-   git clone https://github.com/yourusername/Pie.git
+   git clone https://github.com/DevankU/Pie.git
    cd Pie
    ```
 
@@ -79,78 +80,27 @@ Activate it with a hotkey (default: `Ctrl+Space`) or a 3-finger tap on your touc
    dotnet run
    ```
 
-### Option 2: Create a standalone executable
-
-For a portable .exe you can run anywhere:
+### Option 2: Portable Release
 
 ```bash
 dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish
 ```
 
-This creates a single `Pie.exe` in the `publish` folder. Copy it wherever you want and run it.
-
-### Option 3: Framework-dependent (smaller size)
-
-If you already have .NET 6 runtime installed:
-
-```bash
-dotnet publish -c Release -r win-x64 --self-contained false -o ./publish
-```
+This creates a single `Pie.exe` you can run anywhere.
 
 ## Usage
 
 1. Run `Pie.exe`
-2. Look for the pie icon in your system tray
-3. Press `Ctrl+Space` (or use 3-finger tap) to open the menu
-4. Move your mouse to select, click to confirm
-5. Right-click the tray icon for settings
+2. Press `Ctrl+Space` to open the menu
+3. Move mouse to select, click to confirm
+4. Right-click tray icon for **Settings**
 
 ### Modes
 
-- **Switcher** - Shows all your open windows. Click to switch to that app.
-- **Launcher** - Your pinned apps and folders. Add them in Settings.
-- **Controller** - Custom keyboard shortcuts for specific apps (like media keys for Spotify).
-- **Music Remote** - Play/pause, skip tracks, volume controls.
-
-### Settings
-
-Right-click the tray icon and hit "Settings" to:
-
-- Change the activation hotkey
-- Add/remove launcher items
-- Set up app-specific shortcuts
-- Adjust menu size and appearance
-- Enable/disable sounds
-
-## Building for Development
-
-```bash
-# Clone
-git clone https://github.com/yourusername/Pie.git
-cd Pie
-
-# Restore packages
-dotnet restore
-
-# Build debug
-dotnet build
-
-# Run
-dotnet run
-```
-
-## Folder Structure
-
-```
-Pie/
-├── Controls/          # Custom WPF controls (the pie menu itself)
-├── Helpers/           # Utility classes
-├── Models/            # Data models
-├── Services/          # Core services (hotkey, window management, etc.)
-├── Views/             # Windows (settings, pie menu window)
-├── App.xaml           # App entry point
-└── Pie.csproj         # Project file
-```
+- **Switcher**: Switch active windows.
+- **Launcher**: Launch pinned apps/groups.
+- **Controller**: Triggers keyboard shortcuts for the foreground app.
+- **Music Remote**: Media playback controls.
 
 ## Tips
 
@@ -173,6 +123,46 @@ Pie/
 **App crashes on startup?**
 - Make sure you have .NET 6 runtime installed
 - Try running from command line to see error messages
+
+## Building from Scratch
+
+```bash
+# Clone
+git clone https://github.com/yourusername/Pie.git
+cd Pie
+
+# Restore packages
+dotnet restore
+
+# Build debug
+dotnet build
+
+# Run
+dotnet run
+```
+
+## License
+
+Copyright (c) 2026 Devank.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, subject to the following conditions:
+
+**The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.**
+
+**CREDIT REQUIREMENT:** Any use, modification, or distribution of this software must clearly attribute the original author (Devank) in the user interface and documentation.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 ---
 UNDER DEVELOPMENT — FEATURES MAY BE UNSTABLE. REPORT BUGS IN ISSUES.
