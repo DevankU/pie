@@ -8,6 +8,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>Pie</AssemblyName>
     <RootNamespace>Pie</RootNamespace>
+    <Version>0.5.0-alpha</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ImplicitUsings>disable</ImplicitUsings>
     <Product>Pie</Product>
