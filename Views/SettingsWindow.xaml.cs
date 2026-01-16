@@ -431,18 +431,16 @@ namespace Pie.Views
             // Up/Down buttons panel
             var upDownPanel = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
 
-            // Create arrow icons using Path for reliable rendering
-            var upArrow = new System.Windows.Shapes.Path
+            // Create arrow icons using Polygon for robust rendering
+            var upArrow = new System.Windows.Shapes.Polygon
             {
-                Data = Geometry.Parse("M 0,8 L 8,0 L 16,8"),
-                Stroke = new SolidColorBrush(Color.FromRgb(51, 51, 51)),
-                StrokeThickness = 2,
-                StrokeLineJoin = PenLineJoin.Round,
-                StrokeStartLineCap = PenLineCap.Round,
-                StrokeEndLineCap = PenLineCap.Round,
-                Width = 16,
-                Height = 10,
-                Stretch = Stretch.Uniform
+                Points = new PointCollection { new Point(0, 8), new Point(5, 0), new Point(10, 8) },
+                Fill = new SolidColorBrush(Color.FromRgb(60, 60, 60)),
+                Stretch = Stretch.Fill,
+                Width = 12,
+                Height = 8,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
             };
 
             var upBtn = new Button
@@ -456,17 +454,15 @@ namespace Pie.Views
             upBtn.Click += (s, e) => MoveItem(itemsList, -1);
             upDownPanel.Children.Add(upBtn);
 
-            var downArrow = new System.Windows.Shapes.Path
+            var downArrow = new System.Windows.Shapes.Polygon
             {
-                Data = Geometry.Parse("M 0,0 L 8,8 L 16,0"),
-                Stroke = new SolidColorBrush(Color.FromRgb(51, 51, 51)),
-                StrokeThickness = 2,
-                StrokeLineJoin = PenLineJoin.Round,
-                StrokeStartLineCap = PenLineCap.Round,
-                StrokeEndLineCap = PenLineCap.Round,
-                Width = 16,
-                Height = 10,
-                Stretch = Stretch.Uniform
+                Points = new PointCollection { new Point(0, 0), new Point(5, 8), new Point(10, 0) },
+                Fill = new SolidColorBrush(Color.FromRgb(60, 60, 60)),
+                Stretch = Stretch.Fill,
+                Width = 12,
+                Height = 8,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
             };
 
             var downBtn = new Button
@@ -1376,7 +1372,7 @@ namespace Pie.Views
 
             var version = new TextBlock
             {
-                Text = "Version 0.2-alpha",
+                Text = "Version 0.5-alpha",
                 FontSize = 14,
                 Foreground = new SolidColorBrush(Color.FromRgb(128, 128, 128)),
                 Margin = new Thickness(0, 0, 0, 8)

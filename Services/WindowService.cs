@@ -13,6 +13,73 @@ using Pie.Models;
 
 namespace Pie.Services
 {
+    /// <summary>
+    /// Thread-safe LRU cache with a maximum capacity.
+    /// When capacity is reached, least recently used items are evicted.
+    /// </summary>
+    internal class LruCache<TKey, TValue> where TKey : notnull
+    {
+        private readonly int _capacity;
+        private readonly Dictionary<TKey, LinkedListNode<(TKey Key, TValue Value)>> _cache;
+        private readonly LinkedList<(TKey Key, TValue Value)> _lruList;
+        private readonly object _lock = new();
+
+        public LruCache(int capacity)
+        {
+            _capacity = capacity;
+            _cache = new Dictionary<TKey, LinkedListNode<(TKey, TValue)>>(capacity);
+            _lruList = new LinkedList<(TKey, TValue)>();
+        }
+
+        public bool TryGetValue(TKey key, out TValue? value)
+        {
+            lock (_lock)
+            {
+                if (_cache.TryGetValue(key, out var node))
+                {
+                    // Move to front (most recently used)
+                    _lruList.Remove(node);
+                    _lruList.AddFirst(node);
+                    value = node.Value.Value;
+                    return true;
+                }
+                value = default;
+                return false;
+            }
+        }
+
+        public void Add(TKey key, TValue value)
+        {
+            lock (_lock)
+            {
+                if (_cache.TryGetValue(key, out var existingNode))
+                {
+                    // Update existing and move to front
+                    _lruList.Remove(existingNode);
+                    existingNode.Value = (key, value);
+                    _lruList.AddFirst(existingNode);
+                    return;
+                }
+
+                // Evict least recently used if at capacity
+                if (_cache.Count >= _capacity)
+                {
+                    var lruNode = _lruList.Last;
+                    if (lruNode != null)
+                    {
+                        _cache.Remove(lruNode.Value.Key);
+                        _lruList.RemoveLast();
+                    }
+                }
+
+                // Add new item at front
+                var newNode = new LinkedListNode<(TKey, TValue)>((key, value));
+                _lruList.AddFirst(newNode);
+                _cache[key] = newNode;
+            }
+        }
+    }
+
     public class WindowService
     {
         [DllImport("user32.dll")]
@@ -68,11 +135,16 @@ namespace Pie.Services
         private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
         private readonly SettingsService _settingsService;
-        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ImageSource> _fileIconCache = new();
+        private readonly LruCache<string, ImageSource> _fileIconCache = new(100); // Max 100 cached icons
 
         public WindowService(SettingsService settingsService)
         {
             _settingsService = settingsService;
+        }
+
+        public async System.Threading.Tasks.Task<List<PieMenuItem>> GetRunningApplicationsAsync()
+        {
+            return await System.Threading.Tasks.Task.Run(() => GetRunningApplications());
         }
 
         public List<PieMenuItem> GetRunningApplications()
@@ -223,7 +295,7 @@ namespace Pie.Services
                     BitmapSizeOptions.FromEmptyOptions());
                 
                 image.Freeze();
-                _fileIconCache.TryAdd(filePath, image);
+                _fileIconCache.Add(filePath, image);
                 return image;
             }
             catch
@@ -252,7 +324,7 @@ namespace Pie.Services
 
                 DestroyIcon(hIcon);
                 bitmapSource.Freeze();
-                _fileIconCache.TryAdd(cacheKey, bitmapSource);
+                _fileIconCache.Add(cacheKey, bitmapSource);
                 return bitmapSource;
             }
             catch

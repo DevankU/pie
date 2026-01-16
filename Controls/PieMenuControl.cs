@@ -108,7 +108,8 @@ namespace Pie.Controls
                     ShadowDepth = 0,
                     Color = Color.FromArgb(80, 0, 0, 0),
                     Opacity = 0.5
-                }
+                },
+                CacheMode = new BitmapCache() // Optimization: Cache shadow as bitmap
             };
             SetLeft(_backgroundCircle, _centerX - _backgroundCircle.Width / 2);
             SetTop(_backgroundCircle, _centerY - _backgroundCircle.Height / 2);
@@ -237,6 +238,7 @@ namespace Pie.Controls
                     Color = Colors.Black,
                     Opacity = 0.15
                 },
+                CacheMode = new BitmapCache(), // Optimization: Cache shadow as bitmap
                 RenderTransformOrigin = new Point(0.5, 0.5),
                 RenderTransform = transformGroup,
                 Opacity = 0,

@@ -43,6 +43,8 @@ namespace Pie.Views
         private bool _isClosing;
         private IntPtr _originalForegroundWindow;
         private PieMenuItem? _pendingActionItem;
+        private double _dpiScaleX = 1.0;
+        private double _dpiScaleY = 1.0;
 
         public bool IsClosing => _isClosing;
 
@@ -62,6 +64,7 @@ namespace Pie.Views
             _soundService = soundService;
 
             InitializeWindow();
+            InitializeDpiScale();
 
             _pieMenuControl = new PieMenuControl
             {
@@ -94,7 +97,33 @@ namespace Pie.Views
             PreviewMouseDown += PieMenuWindow_PreviewMouseDown;
         }
 
-        public void ShowAtCursor(PieMenuMode mode)
+        private void InitializeDpiScale()
+        {
+            var source = PresentationSource.FromVisual(this);
+            if (source != null && source.CompositionTarget != null)
+            {
+                _dpiScaleX = source.CompositionTarget.TransformToDevice.M11;
+                _dpiScaleY = source.CompositionTarget.TransformToDevice.M22;
+            }
+            else
+            {
+                // Fallback to system DPI
+                try
+                {
+                    using (var g = System.Drawing.Graphics.FromHwnd(IntPtr.Zero))
+                    {
+                        _dpiScaleX = g.DpiX / 96.0;
+                        _dpiScaleY = g.DpiY / 96.0;
+                    }
+                }
+                catch
+                {
+                    // Default to 1.0 if fails
+                }
+            }
+        }
+
+        public async void ShowAtCursor(PieMenuMode mode)
         {
             LogService.Debug($"ShowAtCursor called - mode: {mode}, IsVisible: {IsVisible}, IsClosing: {_isClosing}");
 
@@ -121,53 +150,17 @@ namespace Pie.Views
             _isClosing = false;
             this.Opacity = 1; // Reset opacity
 
-            var items = GetItemsForMode(mode);
-            if (items.Count == 0)
-            {
-                LogService.Debug($"No items for mode {mode}");
-                return;
-            }
-
-            _pieMenuControl.SetItems(items);
-            // Cancel any ongoing opacity animation and hide control until animation starts
-            _pieMenuControl.BeginAnimation(System.Windows.UIElement.OpacityProperty, null);
-            _pieMenuControl.Visibility = Visibility.Hidden; // Hide until animation starts
-
             // --- DPI AWARE POSITIONING ---
             GetCursorPos(out POINT cursorPos);
 
-            // Try to get DPI from visual (if loaded)
-            var source = PresentationSource.FromVisual(this);
-            double dpiScaleX = 1.0;
-            double dpiScaleY = 1.0;
-
-            if (source != null && source.CompositionTarget != null)
-            {
-                dpiScaleX = source.CompositionTarget.TransformToDevice.M11;
-                dpiScaleY = source.CompositionTarget.TransformToDevice.M22;
-            }
-            else
-            {
-                // Fallback to system DPI
-                try
-                {
-                    using (var g = System.Drawing.Graphics.FromHwnd(IntPtr.Zero))
-                    {
-                        dpiScaleX = g.DpiX / 96.0;
-                        dpiScaleY = g.DpiY / 96.0;
-                    }
-                }
-                catch
-                {
-                    // Default to 1.0 if fails
-                }
-            }
+            // Use cached DPI settings
+            if (_dpiScaleX == 0 || _dpiScaleY == 0) InitializeDpiScale();
 
             // Convert physical pixels (GetCursorPos) to WPF device-independent pixels
-            double cursorX = cursorPos.X / dpiScaleX;
-            double cursorY = cursorPos.Y / dpiScaleY;
+            double cursorX = cursorPos.X / _dpiScaleX;
+            double cursorY = cursorPos.Y / _dpiScaleY;
 
-            LogService.Debug($"Physical Cursor: {cursorPos.X},{cursorPos.Y} | DPI Scale: {dpiScaleX:F2} | Logical Cursor: {cursorX:F0},{cursorY:F0}");
+            LogService.Debug($"Physical Cursor: {cursorPos.X},{cursorPos.Y} | DPI Scale: {_dpiScaleX:F2} | Logical Cursor: {cursorX:F0},{cursorY:F0}");
 
             double menuSize = (_settingsService.Settings.MenuRadius + _settingsService.Settings.IconSize) * 2 + 40;
             Width = menuSize;
@@ -181,10 +174,35 @@ namespace Pie.Views
             Top = top;
             LogService.Debug($"Menu position (Logical): {left}, {top}, size: {menuSize}");
 
+            // Prepare UI state before data is ready
+            _pieMenuControl.Visibility = Visibility.Hidden; // Hide until animation starts
             Show();
 
+            // Load data asynchronously to prevent UI freeze
+            List<PieMenuItem> items;
+            if (mode == PieMenuMode.Switcher)
+            {
+                // Switcher mode can be slow (enumerating windows), so await it
+                items = await _windowService.GetRunningApplicationsAsync();
+            }
+            else
+            {
+                // Other modes are fast, load synchronously
+                items = GetItemsForMode(mode);
+            }
+
+            if (items.Count == 0)
+            {
+                LogService.Debug($"No items for mode {mode}");
+                Hide();
+                return;
+            }
+
+            _pieMenuControl.SetItems(items);
+            // Cancel any ongoing opacity animation and hide control until animation starts
+            _pieMenuControl.BeginAnimation(System.Windows.UIElement.OpacityProperty, null);
+
             // Use BeginInvoke to ensure animation starts after window is fully rendered
-            // This prevents the flash where content appears before animation resets it
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 _pieMenuControl.Visibility = Visibility.Visible;
