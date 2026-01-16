@@ -101,6 +101,7 @@ namespace Pie.Controls
                 Width = MenuRadius * 2 + IconSize + 20,
                 Height = MenuRadius * 2 + IconSize + 20,
                 Fill = new SolidColorBrush(Color.FromArgb(220, 180, 200, 220)),
+                Opacity = 0, // Start hidden, AnimateIn will fade it in
                 Effect = new System.Windows.Media.Effects.DropShadowEffect
                 {
                     BlurRadius = 40,
@@ -118,7 +119,8 @@ namespace Pie.Controls
             {
                 Width = InnerRadius * 2,
                 Height = InnerRadius * 2,
-                Fill = new SolidColorBrush(Color.FromArgb(255, 200, 215, 230))
+                Fill = new SolidColorBrush(Color.FromArgb(255, 200, 215, 230)),
+                Opacity = 0 // Start hidden, AnimateIn will fade it in
             };
             SetLeft(_centerCircle, _centerX - InnerRadius);
             SetTop(_centerCircle, _centerY - InnerRadius);

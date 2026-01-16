@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <Resource Include="Pie.ico" />
+    <EmbeddedResource Include="presets.json" />
   </ItemGroup>
 
 </Project>

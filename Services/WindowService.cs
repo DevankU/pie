@@ -189,6 +189,22 @@ namespace Pie.Services
             }
         }
 
+        public string? GetProcessNameFromWindow(IntPtr hWnd)
+        {
+            if (hWnd == IntPtr.Zero) return null;
+
+            GetWindowThreadProcessId(hWnd, out uint processId);
+            try
+            {
+                var process = Process.GetProcessById((int)processId);
+                return process.ProcessName;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         public ImageSource? GetIconFromFile(string filePath)
         {
             if (string.IsNullOrEmpty(filePath)) return null;

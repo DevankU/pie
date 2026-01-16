@@ -14,6 +14,7 @@ namespace Pie
         private TaskbarIcon? _trayIcon;
         private SettingsService _settingsService = null!;
         private WindowService _windowService = null!;
+        private PresetService _presetService = null!;
         private HotkeyService _hotkeyService = null!;
         private MouseTriggerService _mouseTriggerService = null!;
         private KeyboardService _keyboardService = null!;
@@ -64,6 +65,7 @@ namespace Pie
             LogService.Debug("Initializing services...");
             _settingsService = new SettingsService();
             _windowService = new WindowService(_settingsService);
+            _presetService = new PresetService();
             _hotkeyService = new HotkeyService();
             _mouseTriggerService = new MouseTriggerService();
             _keyboardService = new KeyboardService();
@@ -162,6 +164,7 @@ namespace Pie
             _pieMenuWindow = new PieMenuWindow(
                 _settingsService,
                 _windowService,
+                _presetService,
                 _keyboardService,
                 _mediaService,
                 _soundService);
@@ -272,7 +275,7 @@ namespace Pie
                 return;
             }
 
-            _settingsWindow = new SettingsWindow(_settingsService, _windowService);
+            _settingsWindow = new SettingsWindow(_settingsService, _windowService, _presetService);
             _settingsWindow.Closed += (s, e) => _settingsWindow = null;
             _settingsWindow.Show();
         }

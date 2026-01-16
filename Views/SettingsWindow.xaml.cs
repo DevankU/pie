@@ -19,15 +19,17 @@ namespace Pie.Views
     {
         private readonly SettingsService _settingsService;
         private readonly WindowService _windowService;
+        private readonly PresetService _presetService;
         private string _currentTab = "General";
         private bool _isCapturingHotkey;
         private TextBox? _hotkeyTextBox;
         private PieMenuControl? _previewControl;
 
-        public SettingsWindow(SettingsService settingsService, WindowService windowService)
+        public SettingsWindow(SettingsService settingsService, WindowService windowService, PresetService presetService)
         {
             _settingsService = settingsService;
             _windowService = windowService;
+            _presetService = presetService;
             InitializeComponent();
 
             // Attach handlers safely after initialization
@@ -394,7 +396,7 @@ namespace Pie.Views
             var settings = _settingsService.Settings;
 
             AddHeader("Launcher Items");
-            AddDescription("Add applications, folders, and groups. Drag and drop to reorder.");
+            AddDescription("Add applications, folders, and groups. Use Up/Down buttons or drag and drop to reorder.");
 
             // Main Grid layout for List + Preview
             var grid = new Grid();
@@ -405,10 +407,15 @@ namespace Pie.Views
             // Left Column: List and Buttons
             var leftPanel = new StackPanel { Margin = new Thickness(0, 0, 16, 0) };
 
+            // Container for list and Up/Down buttons
+            var listContainer = new Grid();
+            listContainer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            listContainer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
+
             var itemsList = new ListBox
             {
                 Height = 300,
-                Margin = new Thickness(0, 0, 0, 8),
+                Margin = new Thickness(0, 0, 8, 0),
                 Background = Brushes.White,
                 BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200)),
                 AllowDrop = true
@@ -418,7 +425,64 @@ namespace Pie.Views
             itemsList.PreviewMouseLeftButtonDown += ItemsList_PreviewMouseLeftButtonDown;
             itemsList.Drop += ItemsList_Drop;
 
-            leftPanel.Children.Add(itemsList);
+            Grid.SetColumn(itemsList, 0);
+            listContainer.Children.Add(itemsList);
+
+            // Up/Down buttons panel
+            var upDownPanel = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+
+            // Create arrow icons using Path for reliable rendering
+            var upArrow = new System.Windows.Shapes.Path
+            {
+                Data = Geometry.Parse("M 0,8 L 8,0 L 16,8"),
+                Stroke = new SolidColorBrush(Color.FromRgb(51, 51, 51)),
+                StrokeThickness = 2,
+                StrokeLineJoin = PenLineJoin.Round,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                Width = 16,
+                Height = 10,
+                Stretch = Stretch.Uniform
+            };
+
+            var upBtn = new Button
+            {
+                Content = upArrow,
+                Width = 32,
+                Height = 32,
+                Margin = new Thickness(0, 0, 0, 4),
+                Style = FindResource("SecondaryButtonStyle") as Style
+            };
+            upBtn.Click += (s, e) => MoveItem(itemsList, -1);
+            upDownPanel.Children.Add(upBtn);
+
+            var downArrow = new System.Windows.Shapes.Path
+            {
+                Data = Geometry.Parse("M 0,0 L 8,8 L 16,0"),
+                Stroke = new SolidColorBrush(Color.FromRgb(51, 51, 51)),
+                StrokeThickness = 2,
+                StrokeLineJoin = PenLineJoin.Round,
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+                Width = 16,
+                Height = 10,
+                Stretch = Stretch.Uniform
+            };
+
+            var downBtn = new Button
+            {
+                Content = downArrow,
+                Width = 32,
+                Height = 32,
+                Style = FindResource("SecondaryButtonStyle") as Style
+            };
+            downBtn.Click += (s, e) => MoveItem(itemsList, 1);
+            upDownPanel.Children.Add(downBtn);
+
+            Grid.SetColumn(upDownPanel, 1);
+            listContainer.Children.Add(upDownPanel);
+
+            leftPanel.Children.Add(listContainer);
 
             // Buttons
             var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
@@ -503,15 +567,33 @@ namespace Pie.Views
                 if (itemsList.SelectedItem is ListBoxItem selectedItem && selectedItem.Tag is string id)
                 {
                     var item = settings.LauncherItems.FirstOrDefault(i => i.Id == id);
-                    if (item != null && item.Type == PieMenuItemType.Group)
+                    if (item != null)
                     {
-                        var editor = new GroupEditorWindow(item.Name, item.GroupItems) { Owner = this };
-                        if (editor.ShowDialog() == true)
+                        if (item.Type == PieMenuItemType.Group)
                         {
-                            item.Name = editor.GroupName;
-                            item.GroupItems = editor.GroupApps.ToList();
-                            _settingsService.SaveSettings();
-                            RefreshLauncherList(itemsList);
+                            var editor = new GroupEditorWindow(item.Name, item.GroupItems) { Owner = this };
+                            if (editor.ShowDialog() == true)
+                            {
+                                item.Name = editor.GroupName;
+                                item.GroupItems = editor.GroupApps.ToList();
+                                _settingsService.SaveSettings();
+                                RefreshLauncherList(itemsList);
+                            }
+                        }
+                        else
+                        {
+                            // Edit Application or Folder - show simple name editor
+                            var editDialog = new LauncherItemEditorWindow(item) { Owner = this };
+                            if (editDialog.ShowDialog() == true)
+                            {
+                                item.Name = editDialog.ItemName;
+                                if (item.Type == PieMenuItemType.Application && !string.IsNullOrEmpty(editDialog.ItemPath))
+                                {
+                                    item.Path = editDialog.ItemPath;
+                                }
+                                _settingsService.SaveSettings();
+                                RefreshLauncherList(itemsList);
+                            }
                         }
                     }
                 }
@@ -722,6 +804,10 @@ namespace Pie.Views
             itemsList.SelectedIndex = newIndex;
         }
 
+        private PieMenuControl? _controllerPreviewControl;
+        private ListBox? _controllerActionsList;
+        private AppControllerConfig? _selectedControllerConfig;
+
         private void LoadControllerSettings()
         {
             ContentPanel.Children.Clear();
@@ -729,101 +815,149 @@ namespace Pie.Views
             AddHeader("Application Controllers");
             AddDescription("Configure keyboard shortcuts for specific applications. The controller menu will show these shortcuts when that app is active.");
 
+            // Main Grid layout for Config + Preview
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(300) });
+            grid.Margin = new Thickness(0, 16, 0, 0);
+
+            // Left Column: Configuration
+            var leftPanel = new StackPanel { Margin = new Thickness(0, 0, 16, 0) };
+
+            // App Selection ComboBox
             var appCombo = new ComboBox
             {
                 Width = 300,
                 Padding = new Thickness(8, 6, 8, 6),
-                Margin = new Thickness(0, 8, 0, 8)
+                Margin = new Thickness(0, 0, 0, 8),
+                HorizontalAlignment = HorizontalAlignment.Left
             };
 
-            // Populate with existing configs and option to add new
+            // Populate with existing configs
             foreach (var config in _settingsService.Settings.ControllerConfigs)
             {
                 appCombo.Items.Add(config.AppName);
             }
             appCombo.Items.Add("+ Add New Application");
 
-            ContentPanel.Children.Add(appCombo);
+            leftPanel.Children.Add(appCombo);
 
-            var actionsPanel = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
-            ContentPanel.Children.Add(actionsPanel);
+            // App selection buttons row
+            var appButtonPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 12) };
 
-            appCombo.SelectionChanged += (s, e) =>
+            var browseAppBtn = new Button { Content = "Browse...", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(0, 0, 8, 0) };
+            browseAppBtn.Click += (s, e) => AddControllerAppFromBrowse(appCombo);
+            appButtonPanel.Children.Add(browseAppBtn);
+
+            var fromRunningBtn = new Button { Content = "From Running Apps", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(0, 0, 8, 0) };
+            fromRunningBtn.Click += (s, e) => AddControllerAppFromRunning(appCombo);
+            appButtonPanel.Children.Add(fromRunningBtn);
+
+            var importPresetBtn = new Button { Content = "Import Preset", Style = FindResource("ModernButtonStyle") as Style };
+            importPresetBtn.Click += (s, e) => ImportControllerPreset(appCombo);
+            appButtonPanel.Children.Add(importPresetBtn);
+
+            leftPanel.Children.Add(appButtonPanel);
+
+            // Second row: Import JSON file
+            var appButtonPanel2 = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 12) };
+
+            var importJsonBtn = new Button { Content = "Import JSON File...", Style = FindResource("SecondaryButtonStyle") as Style };
+            importJsonBtn.Click += (s, e) =>
             {
-                if (appCombo.SelectedItem?.ToString() == "+ Add New Application")
+                var dialog = new OpenFileDialog
                 {
-                    ShowAddAppDialog(appCombo, actionsPanel);
-                }
-                else if (appCombo.SelectedIndex >= 0 && appCombo.SelectedIndex < _settingsService.Settings.ControllerConfigs.Count)
-                {
-                    LoadControllerActions(actionsPanel, _settingsService.Settings.ControllerConfigs[appCombo.SelectedIndex]);
-                }
-            };
-
-            if (appCombo.Items.Count > 1)
-            {
-                appCombo.SelectedIndex = 0;
-            }
-        }
-
-        private void ShowAddAppDialog(ComboBox appCombo, StackPanel actionsPanel)
-        {
-            var dialog = new OpenFileDialog
-            {
-                Filter = "Applications (*.exe)|*.exe",
-                Title = "Select Application"
-            };
-
-            if (dialog.ShowDialog() == true)
-            {
-                var processName = Path.GetFileNameWithoutExtension(dialog.FileName);
-                var appName = processName;
-
-                var newConfig = new AppControllerConfig
-                {
-                    ProcessName = processName,
-                    AppName = appName,
-                    Actions = new List<ControllerAction>()
+                    Filter = "JSON Files (*.json)|*.json",
+                    Title = "Import Presets from JSON"
                 };
+                if (dialog.ShowDialog() == true)
+                {
+                    try
+                    {
+                        _presetService.ImportPresetsFromFile(dialog.FileName);
+                        MessageBox.Show("Presets imported successfully!", "Import Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to import presets: {ex.Message}", "Import Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            };
+            appButtonPanel2.Children.Add(importJsonBtn);
 
-                _settingsService.Settings.ControllerConfigs.Add(newConfig);
-                _settingsService.SaveSettings();
+            leftPanel.Children.Add(appButtonPanel2);
 
-                appCombo.Items.Insert(appCombo.Items.Count - 1, appName);
-                appCombo.SelectedIndex = appCombo.Items.Count - 2;
-            }
-            else
+            // Installed apps with presets section
+            var presetsAvailableHeader = new TextBlock
             {
-                appCombo.SelectedIndex = -1;
-            }
-        }
+                Text = "Apps with Presets Available:",
+                FontWeight = FontWeights.Medium,
+                FontSize = 12,
+                Margin = new Thickness(0, 8, 0, 4),
+                Foreground = new SolidColorBrush(Color.FromRgb(100, 100, 100))
+            };
+            leftPanel.Children.Add(presetsAvailableHeader);
 
-        private void LoadControllerActions(StackPanel actionsPanel, AppControllerConfig config)
-        {
-            actionsPanel.Children.Clear();
-
-            var actionsList = new ListBox
+            var presetAppsList = new ListBox
             {
-                Height = 200,
+                Height = 80,
+                Background = new SolidColorBrush(Color.FromRgb(250, 250, 255)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 220)),
+                Margin = new Thickness(0, 0, 0, 12)
+            };
+
+            // Find installed apps that have presets
+            var installedAppsWithPresets = GetInstalledAppsWithPresets();
+            foreach (var app in installedAppsWithPresets.Take(10))
+            {
+                var listItem = new ListBoxItem
+                {
+                    Content = $"{app.Name} ({app.ProcessName})",
+                    Tag = app,
+                    Padding = new Thickness(8, 4, 8, 4),
+                    FontSize = 12
+                };
+                presetAppsList.Items.Add(listItem);
+            }
+
+            if (presetAppsList.Items.Count == 0)
+            {
+                presetAppsList.Items.Add(new ListBoxItem { Content = "No installed apps with presets found", IsEnabled = false, FontStyle = FontStyles.Italic });
+            }
+
+            presetAppsList.MouseDoubleClick += (s, e) =>
+            {
+                if (presetAppsList.SelectedItem is ListBoxItem item && item.Tag is InstalledAppWithPreset app)
+                {
+                    ImportPresetForApp(app, appCombo);
+                }
+            };
+            leftPanel.Children.Add(presetAppsList);
+
+            // Actions section
+            var actionsHeader = new TextBlock { Text = "Actions", FontWeight = FontWeights.SemiBold, FontSize = 13, Margin = new Thickness(0, 8, 0, 8) };
+            leftPanel.Children.Add(actionsHeader);
+
+            _controllerActionsList = new ListBox
+            {
+                Height = 150,
                 Background = Brushes.White,
                 BorderBrush = new SolidColorBrush(Color.FromRgb(200, 200, 200))
             };
+            leftPanel.Children.Add(_controllerActionsList);
 
-            RefreshActionsList(actionsList, config);
-            actionsPanel.Children.Add(actionsList);
-
-            // Add action form
-            var formPanel = new StackPanel { Margin = new Thickness(0, 16, 0, 0) };
+            // Action form
+            var formPanel = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
 
             var nameRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 4) };
-            nameRow.Children.Add(new TextBlock { Text = "Action Name:", Width = 120, VerticalAlignment = VerticalAlignment.Center });
-            var nameInput = new TextBox { Width = 200, Padding = new Thickness(8, 6, 8, 6) };
+            nameRow.Children.Add(new TextBlock { Text = "Action Name:", Width = 100, VerticalAlignment = VerticalAlignment.Center, FontSize = 12 });
+            var nameInput = new TextBox { Width = 180, Padding = new Thickness(8, 6, 8, 6) };
             nameRow.Children.Add(nameInput);
             formPanel.Children.Add(nameRow);
 
             var shortcutRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 0, 4) };
-            shortcutRow.Children.Add(new TextBlock { Text = "Shortcut:", Width = 120, VerticalAlignment = VerticalAlignment.Center });
-            var shortcutInput = new TextBox { Width = 200, Padding = new Thickness(8, 6, 8, 6), IsReadOnly = true };
+            shortcutRow.Children.Add(new TextBlock { Text = "Shortcut:", Width = 100, VerticalAlignment = VerticalAlignment.Center, FontSize = 12 });
+            var shortcutInput = new TextBox { Width = 180, Padding = new Thickness(8, 6, 8, 6), IsReadOnly = true };
             shortcutInput.PreviewKeyDown += (s, e) =>
             {
                 e.Handled = true;
@@ -845,54 +979,350 @@ namespace Pie.Views
             shortcutRow.Children.Add(shortcutInput);
             formPanel.Children.Add(shortcutRow);
 
-            var addActionBtn = new Button { Content = "Add Action", Style = FindResource("ModernButtonStyle") as Style, Margin = new Thickness(0, 8, 0, 0) };
+            var actionButtonPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 8, 0, 0) };
+
+            var addActionBtn = new Button { Content = "Add Action", Style = FindResource("ModernButtonStyle") as Style, Margin = new Thickness(0, 0, 8, 0) };
             addActionBtn.Click += (s, e) =>
             {
-                if (!string.IsNullOrWhiteSpace(nameInput.Text) && !string.IsNullOrWhiteSpace(shortcutInput.Text))
+                if (_selectedControllerConfig != null && !string.IsNullOrWhiteSpace(nameInput.Text) && !string.IsNullOrWhiteSpace(shortcutInput.Text))
                 {
-                    config.Actions.Add(new ControllerAction
+                    _selectedControllerConfig.Actions.Add(new ControllerAction
                     {
                         Name = nameInput.Text,
                         KeyboardShortcut = shortcutInput.Text
                     });
                     _settingsService.SaveSettings();
-                    RefreshActionsList(actionsList, config);
+                    RefreshControllerActionsList();
+                    UpdateControllerPreview();
                     nameInput.Clear();
                     shortcutInput.Clear();
                 }
             };
-            formPanel.Children.Add(addActionBtn);
+            actionButtonPanel.Children.Add(addActionBtn);
 
-            var removeActionBtn = new Button { Content = "Remove Selected", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(0, 8, 0, 0) };
+            var removeActionBtn = new Button { Content = "Remove", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(0, 0, 8, 0) };
             removeActionBtn.Click += (s, e) =>
             {
-                if (actionsList.SelectedItem is ListBoxItem item && item.Tag is string actionId)
+                if (_selectedControllerConfig != null && _controllerActionsList?.SelectedItem is ListBoxItem item && item.Tag is string actionId)
                 {
-                    var action = config.Actions.FirstOrDefault(a => a.Id == actionId);
+                    var action = _selectedControllerConfig.Actions.FirstOrDefault(a => a.Id == actionId);
                     if (action != null)
                     {
-                        config.Actions.Remove(action);
+                        _selectedControllerConfig.Actions.Remove(action);
                         _settingsService.SaveSettings();
-                        RefreshActionsList(actionsList, config);
+                        RefreshControllerActionsList();
+                        UpdateControllerPreview();
                     }
                 }
             };
-            formPanel.Children.Add(removeActionBtn);
+            actionButtonPanel.Children.Add(removeActionBtn);
 
-            actionsPanel.Children.Add(formPanel);
+            var editActionBtn = new Button { Content = "Edit", Style = FindResource("SecondaryButtonStyle") as Style, Margin = new Thickness(0, 0, 8, 0) };
+            editActionBtn.Click += (s, e) =>
+            {
+                if (_selectedControllerConfig != null && _controllerActionsList?.SelectedItem is ListBoxItem item && item.Tag is string actionId)
+                {
+                    var action = _selectedControllerConfig.Actions.FirstOrDefault(a => a.Id == actionId);
+                    if (action != null)
+                    {
+                        var editor = new ActionEditorWindow(action.Name, action.KeyboardShortcut) { Owner = this };
+                        if (editor.ShowDialog() == true)
+                        {
+                            action.Name = editor.ActionName;
+                            action.KeyboardShortcut = editor.ActionShortcut;
+                            _settingsService.SaveSettings();
+                            RefreshControllerActionsList();
+                            UpdateControllerPreview();
+                        }
+                    }
+                }
+            };
+            actionButtonPanel.Children.Add(editActionBtn);
+
+            var deleteAppBtn = new Button { Content = "Delete App", Style = FindResource("SecondaryButtonStyle") as Style };
+            deleteAppBtn.Click += (s, e) =>
+            {
+                if (_selectedControllerConfig != null)
+                {
+                    var result = MessageBox.Show($"Delete all shortcuts for {_selectedControllerConfig.AppName}?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        _settingsService.Settings.ControllerConfigs.Remove(_selectedControllerConfig);
+                        _settingsService.SaveSettings();
+                        _selectedControllerConfig = null;
+                        LoadControllerSettings(); // Reload
+                    }
+                }
+            };
+            actionButtonPanel.Children.Add(deleteAppBtn);
+
+            formPanel.Children.Add(actionButtonPanel);
+            leftPanel.Children.Add(formPanel);
+
+            Grid.SetColumn(leftPanel, 0);
+            grid.Children.Add(leftPanel);
+
+            // Right Column: Preview
+            var rightPanel = new StackPanel();
+            rightPanel.Children.Add(new TextBlock { Text = "Preview", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 8), HorizontalAlignment = HorizontalAlignment.Center });
+
+            var previewBorder = new Border
+            {
+                Width = 280,
+                Height = 280,
+                Background = new SolidColorBrush(Color.FromRgb(240, 240, 245)),
+                CornerRadius = new CornerRadius(16),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(220, 220, 220)),
+                BorderThickness = new Thickness(1),
+                ClipToBounds = true
+            };
+
+            _controllerPreviewControl = new PieMenuControl
+            {
+                MenuRadius = 100,
+                IconSize = 32,
+                InnerRadius = 30,
+                Width = 280,
+                Height = 280
+            };
+
+            previewBorder.Child = _controllerPreviewControl;
+            rightPanel.Children.Add(previewBorder);
+
+            Grid.SetColumn(rightPanel, 1);
+            grid.Children.Add(rightPanel);
+
+            ContentPanel.Children.Add(grid);
+
+            // Handle app selection
+            appCombo.SelectionChanged += (s, e) =>
+            {
+                if (appCombo.SelectedItem?.ToString() == "+ Add New Application")
+                {
+                    AddControllerAppFromBrowse(appCombo);
+                }
+                else if (appCombo.SelectedIndex >= 0 && appCombo.SelectedIndex < _settingsService.Settings.ControllerConfigs.Count)
+                {
+                    _selectedControllerConfig = _settingsService.Settings.ControllerConfigs[appCombo.SelectedIndex];
+                    RefreshControllerActionsList();
+                    UpdateControllerPreview();
+                }
+            };
+
+            if (appCombo.Items.Count > 1)
+            {
+                appCombo.SelectedIndex = 0;
+            }
         }
 
-        private void RefreshActionsList(ListBox actionsList, AppControllerConfig config)
+        private void AddControllerAppFromBrowse(ComboBox appCombo)
         {
-            actionsList.Items.Clear();
-            foreach (var action in config.Actions)
+            var dialog = new OpenFileDialog
             {
-                actionsList.Items.Add(new ListBoxItem
+                Filter = "Applications (*.exe)|*.exe",
+                Title = "Select Application"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                var processName = Path.GetFileNameWithoutExtension(dialog.FileName);
+                AddControllerConfig(processName, processName, appCombo);
+            }
+            else
+            {
+                appCombo.SelectedIndex = -1;
+            }
+        }
+
+        private void AddControllerAppFromRunning(ComboBox appCombo)
+        {
+            var picker = new RunningAppsPickerWindow(_windowService) { Owner = this };
+            if (picker.ShowDialog() == true && picker.SelectedProcessNames.Count > 0)
+            {
+                foreach (var processName in picker.SelectedProcessNames)
+                {
+                    AddControllerConfig(processName, processName, appCombo);
+                }
+            }
+        }
+
+        private void ImportControllerPreset(ComboBox appCombo)
+        {
+            var picker = new PresetPickerWindow(_presetService) { Owner = this };
+            if (picker.ShowDialog() == true && picker.SelectedPreset != null)
+            {
+                var preset = picker.SelectedPreset;
+                var config = new AppControllerConfig
+                {
+                    ProcessName = preset.ProcessNames.FirstOrDefault() ?? preset.Name.ToLower(),
+                    AppName = preset.Name,
+                    Actions = preset.Actions.Select(a => new ControllerAction
+                    {
+                        Name = a.Name,
+                        KeyboardShortcut = a.Shortcut
+                    }).ToList()
+                };
+
+                // Check if already exists
+                var existing = _settingsService.Settings.ControllerConfigs.FirstOrDefault(c => c.ProcessName.Equals(config.ProcessName, StringComparison.OrdinalIgnoreCase));
+                if (existing != null)
+                {
+                    var result = MessageBox.Show($"{preset.Name} already has shortcuts configured. Replace them?", "Confirm", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        existing.Actions = config.Actions;
+                        _settingsService.SaveSettings();
+                        LoadControllerSettings();
+                    }
+                }
+                else
+                {
+                    _settingsService.Settings.ControllerConfigs.Add(config);
+                    _settingsService.SaveSettings();
+                    appCombo.Items.Insert(appCombo.Items.Count - 1, config.AppName);
+                    appCombo.SelectedIndex = appCombo.Items.Count - 2;
+                }
+            }
+        }
+
+        private void AddControllerConfig(string processName, string appName, ComboBox appCombo)
+        {
+            // Check if already exists
+            var existing = _settingsService.Settings.ControllerConfigs.FirstOrDefault(c => c.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
+            if (existing != null)
+            {
+                var index = _settingsService.Settings.ControllerConfigs.IndexOf(existing);
+                appCombo.SelectedIndex = index;
+                return;
+            }
+
+            var newConfig = new AppControllerConfig
+            {
+                ProcessName = processName,
+                AppName = appName,
+                Actions = new List<ControllerAction>()
+            };
+
+            _settingsService.Settings.ControllerConfigs.Add(newConfig);
+            _settingsService.SaveSettings();
+
+            appCombo.Items.Insert(appCombo.Items.Count - 1, appName);
+            appCombo.SelectedIndex = appCombo.Items.Count - 2;
+        }
+
+        private void RefreshControllerActionsList()
+        {
+            if (_controllerActionsList == null || _selectedControllerConfig == null) return;
+
+            _controllerActionsList.Items.Clear();
+            foreach (var action in _selectedControllerConfig.Actions)
+            {
+                _controllerActionsList.Items.Add(new ListBoxItem
                 {
                     Content = $"{action.Name} - {action.KeyboardShortcut}",
                     Tag = action.Id,
                     Padding = new Thickness(8, 4, 8, 4)
                 });
+            }
+        }
+
+        private void UpdateControllerPreview()
+        {
+            if (_controllerPreviewControl == null || _selectedControllerConfig == null) return;
+
+            var items = new List<PieMenuItem>();
+            foreach (var action in _selectedControllerConfig.Actions)
+            {
+                var item = new PieMenuItem
+                {
+                    Name = action.Name,
+                    KeyboardShortcut = action.KeyboardShortcut,
+                    Type = PieMenuItemType.Action,
+                    Icon = Helpers.IconHelper.CreateActionIcon(action.Name)
+                };
+                items.Add(item);
+            }
+
+            _controllerPreviewControl.SetItems(items);
+            _controllerPreviewControl.ShowImmediate();
+        }
+
+        private class InstalledAppWithPreset
+        {
+            public string Name { get; set; } = string.Empty;
+            public string ProcessName { get; set; } = string.Empty;
+            public string Path { get; set; } = string.Empty;
+            public Preset Preset { get; set; } = null!;
+        }
+
+        private List<InstalledAppWithPreset> GetInstalledAppsWithPresets()
+        {
+            var result = new List<InstalledAppWithPreset>();
+            var allPresets = _presetService.GetAllPresets();
+
+            // Check common app paths
+            var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+            foreach (var preset in allPresets)
+            {
+                foreach (var processName in preset.ProcessNames)
+                {
+                    // Check if app is running
+                    var running = System.Diagnostics.Process.GetProcessesByName(processName);
+                    if (running.Length > 0)
+                    {
+                        try
+                        {
+                            var path = running[0].MainModule?.FileName ?? "";
+                            result.Add(new InstalledAppWithPreset
+                            {
+                                Name = preset.Name,
+                                ProcessName = processName,
+                                Path = path,
+                                Preset = preset
+                            });
+                            break;
+                        }
+                        catch { }
+                    }
+                }
+            }
+
+            return result.DistinctBy(x => x.ProcessName).ToList();
+        }
+
+        private void ImportPresetForApp(InstalledAppWithPreset app, ComboBox appCombo)
+        {
+            var config = new AppControllerConfig
+            {
+                ProcessName = app.ProcessName,
+                AppName = app.Preset.Name,
+                Actions = app.Preset.Actions.Select(a => new ControllerAction
+                {
+                    Name = a.Name,
+                    KeyboardShortcut = a.Shortcut
+                }).ToList()
+            };
+
+            var existing = _settingsService.Settings.ControllerConfigs.FirstOrDefault(c => c.ProcessName.Equals(app.ProcessName, StringComparison.OrdinalIgnoreCase));
+            if (existing != null)
+            {
+                var result = MessageBox.Show($"{app.Preset.Name} already has shortcuts. Replace?", "Confirm", MessageBoxButton.YesNo);
+                if (result == MessageBoxResult.Yes)
+                {
+                    existing.Actions = config.Actions;
+                    _settingsService.SaveSettings();
+                    LoadControllerSettings();
+                }
+            }
+            else
+            {
+                _settingsService.Settings.ControllerConfigs.Add(config);
+                _settingsService.SaveSettings();
+                appCombo.Items.Insert(appCombo.Items.Count - 1, config.AppName);
+                appCombo.SelectedIndex = appCombo.Items.Count - 2;
             }
         }
 

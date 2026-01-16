@@ -3,11 +3,11 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Pie - Settings"
         Icon="/Pie.ico"
-        Height="600" Width="800"
+        Height="700" Width="1000"
         WindowStartupLocation="CenterScreen"
         Background="#F5F5F7"
         ResizeMode="CanResize"
-        MinWidth="700" MinHeight="500">
+        MinWidth="850" MinHeight="550">
 
     <Window.Resources>
         <Style x:Key="TabButtonStyle" TargetType="RadioButton">

@@ -19,6 +19,12 @@ namespace Pie.Views
         [DllImport("user32.dll")]
         private static extern bool GetCursorPos(out POINT lpPoint);
 
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
         [StructLayout(LayoutKind.Sequential)]
         private struct POINT
         {
@@ -29,23 +35,28 @@ namespace Pie.Views
         private readonly PieMenuControl _pieMenuControl;
         private readonly SettingsService _settingsService;
         private readonly WindowService _windowService;
+        private readonly PresetService _presetService;
         private readonly KeyboardService _keyboardService;
         private readonly MediaService _mediaService;
         private readonly SoundService _soundService;
         private PieMenuMode _currentMode;
         private bool _isClosing;
+        private IntPtr _originalForegroundWindow;
+        private PieMenuItem? _pendingActionItem;
 
         public bool IsClosing => _isClosing;
 
         public PieMenuWindow(
             SettingsService settingsService,
             WindowService windowService,
+            PresetService presetService,
             KeyboardService keyboardService,
             MediaService mediaService,
             SoundService soundService)
         {
             _settingsService = settingsService;
             _windowService = windowService;
+            _presetService = presetService;
             _keyboardService = keyboardService;
             _mediaService = mediaService;
             _soundService = soundService;
@@ -87,6 +98,10 @@ namespace Pie.Views
         {
             LogService.Debug($"ShowAtCursor called - mode: {mode}, IsVisible: {IsVisible}, IsClosing: {_isClosing}");
 
+            // Store the foreground window before we take focus (for Controller mode)
+            _originalForegroundWindow = GetForegroundWindow();
+            _pendingActionItem = null;
+
             // Cancel any ongoing close animation and reset state
             if (_isClosing)
             {
@@ -114,9 +129,9 @@ namespace Pie.Views
             }
 
             _pieMenuControl.SetItems(items);
-            // Cancel any ongoing opacity animation and reset to fully visible
+            // Cancel any ongoing opacity animation and hide control until animation starts
             _pieMenuControl.BeginAnimation(System.Windows.UIElement.OpacityProperty, null);
-            _pieMenuControl.Opacity = 1;
+            _pieMenuControl.Visibility = Visibility.Hidden; // Hide until animation starts
 
             // --- DPI AWARE POSITIONING ---
             GetCursorPos(out POINT cursorPos);
@@ -168,8 +183,16 @@ namespace Pie.Views
 
             Show();
 
-            _soundService.PlayActivateSound();
-            _pieMenuControl.AnimateIn();
+            // Use BeginInvoke to ensure animation starts after window is fully rendered
+            // This prevents the flash where content appears before animation resets it
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                _pieMenuControl.Visibility = Visibility.Visible;
+                _pieMenuControl.Opacity = 1;
+                _soundService.PlayActivateSound();
+                _pieMenuControl.AnimateIn();
+            }), System.Windows.Threading.DispatcherPriority.Render);
+
             Activate();
 
             // Prevent immediate closing from the same click/key used to open (400ms debounce)
@@ -240,33 +263,70 @@ namespace Pie.Views
 
         private List<PieMenuItem> GetControllerItems()
         {
-            var foregroundProcess = _windowService.GetForegroundProcessName();
+            // Use the stored original foreground window (captured when menu opened)
+            // instead of current foreground (which is the pie menu itself)
+            var foregroundProcess = _windowService.GetProcessNameFromWindow(_originalForegroundWindow);
+            if (string.IsNullOrEmpty(foregroundProcess))
+            {
+                // Fallback to current foreground if original wasn't captured
+                foregroundProcess = _windowService.GetForegroundProcessName();
+            }
             if (string.IsNullOrEmpty(foregroundProcess)) return new List<PieMenuItem>();
 
+            LogService.Debug($"Controller: Looking for shortcuts for process '{foregroundProcess}'");
+
+            // 1. Try User Configuration first
             var config = _settingsService.Settings.ControllerConfigs
                 .FirstOrDefault(c => c.ProcessName.Equals(foregroundProcess, StringComparison.OrdinalIgnoreCase));
 
-            if (config == null) return new List<PieMenuItem>();
-
-            var items = new List<PieMenuItem>();
-            foreach (var action in config.Actions)
+            if (config != null)
             {
-                var item = new PieMenuItem
+                var items = new List<PieMenuItem>();
+                foreach (var action in config.Actions)
                 {
-                    Id = action.Id,
-                    Name = action.Name,
-                    KeyboardShortcut = action.KeyboardShortcut,
-                    Type = PieMenuItemType.Action
-                };
+                    var item = new PieMenuItem
+                    {
+                        Id = action.Id,
+                        Name = action.Name,
+                        KeyboardShortcut = action.KeyboardShortcut,
+                        Type = PieMenuItemType.Action
+                    };
 
-                if (!string.IsNullOrEmpty(action.IconPath))
-                {
-                    item.Icon = _windowService.GetIconFromFile(action.IconPath);
+                    if (!string.IsNullOrEmpty(action.IconPath))
+                    {
+                        item.Icon = _windowService.GetIconFromFile(action.IconPath);
+                    }
+                    else
+                    {
+                        // Use action name to generate contextual icon
+                        item.Icon = Helpers.IconHelper.CreateActionIcon(action.Name);
+                    }
+
+                    items.Add(item);
                 }
-
-                items.Add(item);
+                return items;
             }
-            return items;
+
+            // 2. Fallback to Presets
+            var preset = _presetService.GetPresetForProcess(foregroundProcess);
+            if (preset != null)
+            {
+                var items = new List<PieMenuItem>();
+                foreach (var action in preset.Actions)
+                {
+                    var item = new PieMenuItem
+                    {
+                        Name = action.Name,
+                        KeyboardShortcut = action.Shortcut,
+                        Type = PieMenuItemType.Action,
+                        Icon = Helpers.IconHelper.CreateActionIcon(action.Icon)
+                    };
+                    items.Add(item);
+                }
+                return items;
+            }
+
+            return new List<PieMenuItem>();
         }
 
         private List<PieMenuItem> GetMusicRemoteItems()
@@ -284,8 +344,18 @@ namespace Pie.Views
 
         private void PieMenuControl_ItemSelected(object? sender, PieMenuItem item)
         {
-            ExecuteItem(item);
-            CloseMenu();
+            // For Action items (Controller shortcuts), delay execution until menu is closed
+            // and focus is restored to the original window
+            if (item.Type == PieMenuItemType.Action && !string.IsNullOrEmpty(item.KeyboardShortcut))
+            {
+                _pendingActionItem = item;
+                CloseMenu();
+            }
+            else
+            {
+                ExecuteItem(item);
+                CloseMenu();
+            }
         }
 
         private void ExecuteItem(PieMenuItem item)
@@ -316,6 +386,7 @@ namespace Pie.Views
                     break;
 
                 case PieMenuItemType.Action:
+                    // This is now handled in the close callback for proper focus restoration
                     if (!string.IsNullOrEmpty(item.KeyboardShortcut))
                     {
                         _keyboardService.SendKeyboardShortcut(item.KeyboardShortcut);
@@ -514,6 +585,9 @@ namespace Pie.Views
                         Hide();
                         _isClosing = false;
                         LogService.Debug("Menu hidden successfully");
+
+                        // Execute pending action after menu is closed and focus can be restored
+                        ExecutePendingAction();
                     }
                     else
                     {
@@ -521,6 +595,42 @@ namespace Pie.Views
                     }
                 });
             });
+        }
+
+        private void ExecutePendingAction()
+        {
+            if (_pendingActionItem == null) return;
+
+            var item = _pendingActionItem;
+            _pendingActionItem = null;
+
+            // Restore focus to the original window before sending the shortcut
+            if (_originalForegroundWindow != IntPtr.Zero)
+            {
+                LogService.Debug($"Restoring focus to original window: {_originalForegroundWindow}");
+                SetForegroundWindow(_originalForegroundWindow);
+
+                // Small delay to ensure the window is focused before sending keys
+                System.Threading.Tasks.Task.Delay(50).ContinueWith(_ =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (!string.IsNullOrEmpty(item.KeyboardShortcut))
+                        {
+                            LogService.Debug($"Sending keyboard shortcut: {item.KeyboardShortcut}");
+                            _keyboardService.SendKeyboardShortcut(item.KeyboardShortcut);
+                        }
+                    });
+                });
+            }
+            else
+            {
+                // No original window, just send the shortcut
+                if (!string.IsNullOrEmpty(item.KeyboardShortcut))
+                {
+                    _keyboardService.SendKeyboardShortcut(item.KeyboardShortcut);
+                }
+            }
         }
 
         public void CycleMode()

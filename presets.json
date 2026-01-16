@@ -1,0 +1,607 @@
+[
+  {
+    "id": "browsers_chromium",
+    "name": "Web Browser",
+    "description": "Chrome, Edge, Brave, Opera, Vivaldi",
+    "processNames": ["chrome", "msedge", "brave", "opera", "vivaldi"],
+    "actions": [
+      { "name": "Reopen Tab", "shortcut": "Ctrl+Shift+T", "icon": "undo" },
+      { "name": "Incognito", "shortcut": "Ctrl+Shift+N", "icon": "inprivate" },
+      { "name": "DevTools", "shortcut": "Ctrl+Shift+I", "icon": "code" },
+      { "name": "Downloads", "shortcut": "Ctrl+J", "icon": "download" },
+      { "name": "Clear Data", "shortcut": "Ctrl+Shift+Delete", "icon": "delete" },
+      { "name": "Task Manager", "shortcut": "Shift+Esc", "icon": "activity" }
+    ]
+  },
+  {
+    "id": "firefox",
+    "name": "Firefox",
+    "processNames": ["firefox"],
+    "actions": [
+      { "name": "Reopen Tab", "shortcut": "Ctrl+Shift+T", "icon": "undo" },
+      { "name": "Private Win", "shortcut": "Ctrl+Shift+P", "icon": "inprivate" },
+      { "name": "Take Screenshot", "shortcut": "Ctrl+Shift+S", "icon": "camera" },
+      { "name": "Reader View", "shortcut": "F9", "icon": "book" },
+      { "name": "Downloads", "shortcut": "Ctrl+J", "icon": "download" }
+    ]
+  },
+  {
+    "id": "vscode",
+    "name": "VS Code",
+    "processNames": ["code", "code-insiders", "vscodium"],
+    "actions": [
+      { "name": "Command Palette", "shortcut": "Ctrl+Shift+P", "icon": "command" },
+      { "name": "Quick Open", "shortcut": "Ctrl+P", "icon": "search" },
+      { "name": "Terminal", "shortcut": "Ctrl+`", "icon": "terminal" },
+      { "name": "Format", "shortcut": "Shift+Alt+F", "icon": "format" },
+      { "name": "Zen Mode", "shortcut": "Ctrl+K,Z", "icon": "view-full" },
+      { "name": "Split Editor", "shortcut": "Ctrl+\\", "icon": "split" }
+    ]
+  },
+  {
+    "id": "visualstudio",
+    "name": "Visual Studio",
+    "processNames": ["devenv"],
+    "actions": [
+      { "name": "Build", "shortcut": "Ctrl+Shift+B", "icon": "build" },
+      { "name": "Stop Debug", "shortcut": "Shift+F5", "icon": "stop" },
+      { "name": "Comment", "shortcut": "Ctrl+K,C", "icon": "comment" },
+      { "name": "Solution Exp", "shortcut": "Ctrl+Alt+L", "icon": "list" },
+      { "name": "Refactor", "shortcut": "Ctrl+.", "icon": "lightbulb" },
+      { "name": "Definition", "shortcut": "F12", "icon": "search" }
+    ]
+  },
+  {
+    "id": "explorer",
+    "name": "File Explorer",
+    "processNames": ["explorer"],
+    "actions": [
+      { "name": "New Folder", "shortcut": "Ctrl+Shift+N", "icon": "folder-add" },
+      { "name": "Properties", "shortcut": "Alt+Enter", "icon": "info" },
+      { "name": "Address Bar", "shortcut": "Alt+D", "icon": "link" },
+      { "name": "Preview Pane", "shortcut": "Alt+P", "icon": "preview" },
+      { "name": "Up Level", "shortcut": "Alt+Up", "icon": "arrow-up" },
+      { "name": "Rename", "shortcut": "F2", "icon": "edit" }
+    ]
+  },
+  {
+    "id": "terminal",
+    "name": "Terminal",
+    "description": "Windows Terminal, PowerShell, CMD",
+    "processNames": ["windowsterminal", "powershell", "cmd"],
+    "actions": [
+      { "name": "New Tab", "shortcut": "Ctrl+Shift+T", "icon": "tab-add" },
+      { "name": "Settings", "shortcut": "Ctrl+,", "icon": "settings" },
+      { "name": "Find", "shortcut": "Ctrl+Shift+F", "icon": "search" },
+      { "name": "Split Vert", "shortcut": "Alt+Shift+=", "icon": "split-v" },
+      { "name": "Close Pane", "shortcut": "Ctrl+Shift+W", "icon": "close" }
+    ]
+  },
+  {
+    "id": "excel",
+    "name": "Excel",
+    "processNames": ["excel"],
+    "actions": [
+      { "name": "Format Cells", "shortcut": "Ctrl+1", "icon": "edit" },
+      { "name": "AutoSum", "shortcut": "Alt+=", "icon": "sum" },
+      { "name": "Filter", "shortcut": "Ctrl+Shift+L", "icon": "filter" },
+      { "name": "Add Row/Col", "shortcut": "Ctrl++", "icon": "add" },
+      { "name": "Del Row/Col", "shortcut": "Ctrl+-", "icon": "remove" },
+      { "name": "Time", "shortcut": "Ctrl+Shift+;", "icon": "clock" }
+    ]
+  },
+  {
+    "id": "word",
+    "name": "Word",
+    "processNames": ["winword"],
+    "actions": [
+      { "name": "Change Case", "shortcut": "Shift+F3", "icon": "font-case" },
+      { "name": "Thesaurus", "shortcut": "Shift+F7", "icon": "book" },
+      { "name": "Insert Link", "shortcut": "Ctrl+K", "icon": "link" },
+      { "name": "Show Hidden", "shortcut": "Ctrl+Shift+8", "icon": "paragraph" },
+      { "name": "Page Break", "shortcut": "Ctrl+Enter", "icon": "page-break" }
+    ]
+  },
+  {
+    "id": "powerpoint",
+    "name": "PowerPoint",
+    "processNames": ["powerpnt"],
+    "actions": [
+      { "name": "Slideshow", "shortcut": "F5", "icon": "play" },
+      { "name": "New Slide", "shortcut": "Ctrl+M", "icon": "slide-add" },
+      { "name": "Duplicate", "shortcut": "Ctrl+D", "icon": "copy" },
+      { "name": "Presenter", "shortcut": "Alt+F5", "icon": "monitor" },
+      { "name": "Pen Tool", "shortcut": "Ctrl+P", "icon": "pen" }
+    ]
+  },
+  {
+    "id": "discord",
+    "name": "Discord",
+    "processNames": ["discord"],
+    "actions": [
+      { "name": "Quick Switch", "shortcut": "Ctrl+K", "icon": "search" },
+      { "name": "Mute", "shortcut": "Ctrl+Shift+M", "icon": "mic-off" },
+      { "name": "Deafen", "shortcut": "Ctrl+Shift+D", "icon": "headphone-off" },
+      { "name": "Mark Read", "shortcut": "Shift+Esc", "icon": "check-all" },
+      { "name": "Upload", "shortcut": "Ctrl+Shift+U", "icon": "upload" }
+    ]
+  },
+  {
+    "id": "spotify",
+    "name": "Spotify",
+    "processNames": ["spotify"],
+    "actions": [
+      { "name": "Search", "shortcut": "Ctrl+L", "icon": "search" },
+      { "name": "Vol Up", "shortcut": "Ctrl+Up", "icon": "volume-up" },
+      { "name": "Vol Down", "shortcut": "Ctrl+Down", "icon": "volume-down" },
+      { "name": "Shuffle", "shortcut": "Ctrl+S", "icon": "shuffle" },
+      { "name": "Repeat", "shortcut": "Ctrl+R", "icon": "repeat" }
+    ]
+  },
+  {
+    "id": "photoshop",
+    "name": "Photoshop",
+    "processNames": ["photoshop"],
+    "actions": [
+      { "name": "Transform", "shortcut": "Ctrl+T", "icon": "transform" },
+      { "name": "Deselect", "shortcut": "Ctrl+D", "icon": "select-none" },
+      { "name": "Invert", "shortcut": "Ctrl+I", "icon": "invert" },
+      { "name": "Levels", "shortcut": "Ctrl+L", "icon": "levels" },
+      { "name": "Hue/Sat", "shortcut": "Ctrl+U", "icon": "palette" },
+      { "name": "Brush +", "shortcut": "]", "icon": "brush-up" }
+    ]
+  },
+  {
+    "id": "illustrator",
+    "name": "Illustrator",
+    "processNames": ["illustrator"],
+    "actions": [
+      { "name": "Outline", "shortcut": "Ctrl+Y", "icon": "outline" },
+      { "name": "Group", "shortcut": "Ctrl+G", "icon": "group" },
+      { "name": "Ungroup", "shortcut": "Ctrl+Shift+G", "icon": "ungroup" },
+      { "name": "Mask", "shortcut": "Ctrl+7", "icon": "mask" },
+      { "name": "Lock", "shortcut": "Ctrl+2", "icon": "lock" }
+    ]
+  },
+  {
+    "id": "premiere",
+    "name": "Premiere Pro",
+    "processNames": ["adobe premiere pro"],
+    "actions": [
+      { "name": "Razor Tool", "shortcut": "C", "icon": "cut" },
+      { "name": "Ripple Delete", "shortcut": "Shift+Delete", "icon": "delete" },
+      { "name": "Mark In", "shortcut": "I", "icon": "arrow-left" },
+      { "name": "Mark Out", "shortcut": "O", "icon": "arrow-right" },
+      { "name": "Render In/Out", "shortcut": "Enter", "icon": "render" }
+    ]
+  },
+  {
+    "id": "aftereffects",
+    "name": "After Effects",
+    "processNames": ["afterfx"],
+    "actions": [
+      { "name": "RAM Preview", "shortcut": "Space", "icon": "play" },
+      { "name": "New Solid", "shortcut": "Ctrl+Y", "icon": "layer-add" },
+      { "name": "Easy Ease", "shortcut": "F9", "icon": "curve" },
+      { "name": "Trim Start", "shortcut": "Alt+[", "icon": "trim-left" },
+      { "name": "Trim End", "shortcut": "Alt+]", "icon": "trim-right" }
+    ]
+  },
+  {
+    "id": "slack",
+    "name": "Slack",
+    "processNames": ["slack"],
+    "actions": [
+      { "name": "Quick Switch", "shortcut": "Ctrl+K", "icon": "search" },
+      { "name": "Unreads", "shortcut": "Ctrl+Shift+A", "icon": "list" },
+      { "name": "Status", "shortcut": "Ctrl+Shift+Y", "icon": "user-status" },
+      { "name": "Preferences", "shortcut": "Ctrl+,", "icon": "settings" },
+      { "name": "Upload", "shortcut": "Ctrl+U", "icon": "upload" }
+    ]
+  },
+  {
+    "id": "teams",
+    "name": "Microsoft Teams",
+    "processNames": ["ms-teams", "teams"],
+    "actions": [
+      { "name": "Mute", "shortcut": "Ctrl+Shift+M", "icon": "mic-off" },
+      { "name": "Camera", "shortcut": "Ctrl+Shift+O", "icon": "video-off" },
+      { "name": "Blur BG", "shortcut": "Ctrl+Shift+P", "icon": "blur" },
+      { "name": "Raise Hand", "shortcut": "Ctrl+Shift+K", "icon": "hand" },
+      { "name": "Search", "shortcut": "Ctrl+E", "icon": "search" }
+    ]
+  },
+  {
+    "id": "notepad_plus_plus",
+    "name": "Notepad++",
+    "processNames": ["notepad++"],
+    "actions": [
+      { "name": "Dup Line", "shortcut": "Ctrl+D", "icon": "copy" },
+      { "name": "Move Up", "shortcut": "Ctrl+Shift+Up", "icon": "arrow-up" },
+      { "name": "Column Mode", "shortcut": "Alt+Mouse", "icon": "column" },
+      { "name": "Find Files", "shortcut": "Ctrl+Shift+F", "icon": "search-folder" },
+      { "name": "Run", "shortcut": "F5", "icon": "play" }
+    ]
+  },
+  {
+    "id": "obsidian",
+    "name": "Obsidian",
+    "processNames": ["obsidian"],
+    "actions": [
+      { "name": "Command Pal", "shortcut": "Ctrl+P", "icon": "command" },
+      { "name": "New Note", "shortcut": "Ctrl+N", "icon": "file-add" },
+      { "name": "Graph", "shortcut": "Ctrl+G", "icon": "graph" },
+      { "name": "Edit/Preview", "shortcut": "Ctrl+E", "icon": "eye" },
+      { "name": "Daily Note", "shortcut": "Alt+D", "icon": "calendar" }
+    ]
+  },
+  {
+    "id": "vlc",
+    "name": "VLC Media Player",
+    "processNames": ["vlc"],
+    "actions": [
+      { "name": "Play/Pause", "shortcut": "Space", "icon": "playpause" },
+      { "name": "Aspect Ratio", "shortcut": "A", "icon": "aspect" },
+      { "name": "Sub Delay +", "shortcut": "H", "icon": "subtitle" },
+      { "name": "Sub Delay -", "shortcut": "G", "icon": "subtitle" },
+      { "name": "Snapshot", "shortcut": "Shift+S", "icon": "camera" }
+    ]
+  },
+  {
+    "id": "blender",
+    "name": "Blender",
+    "processNames": ["blender"],
+    "actions": [
+      { "name": "Search", "shortcut": "F3", "icon": "search" },
+      { "name": "Render", "shortcut": "F12", "icon": "render" },
+      { "name": "Toolbar", "shortcut": "T", "icon": "tools" },
+      { "name": "Sidebar", "shortcut": "N", "icon": "sidebar" },
+      { "name": "Wireframe", "shortcut": "Shift+Z", "icon": "wireframe" }
+    ]
+  },
+  {
+    "id": "figma",
+    "name": "Figma",
+    "processNames": ["figma"],
+    "actions": [
+      { "name": "Pick Color", "shortcut": "I", "icon": "eyedropper" },
+      { "name": "Component", "shortcut": "Ctrl+Alt+K", "icon": "component" },
+      { "name": "Auto Layout", "shortcut": "Shift+A", "icon": "layout" },
+      { "name": "UI Toggle", "shortcut": "Ctrl+\\", "icon": "view" },
+      { "name": "Group", "shortcut": "Ctrl+G", "icon": "group" }
+    ]
+  },
+  {
+    "id": "unity",
+    "name": "Unity Editor",
+    "processNames": ["unity"],
+    "actions": [
+      { "name": "Play", "shortcut": "Ctrl+P", "icon": "play" },
+      { "name": "Build", "shortcut": "Ctrl+Shift+B", "icon": "settings" },
+      { "name": "Snap Grid", "shortcut": "Ctrl", "icon": "grid" },
+      { "name": "Refresh", "shortcut": "Ctrl+R", "icon": "refresh" },
+      { "name": "Console", "shortcut": "Ctrl+Shift+C", "icon": "terminal" }
+    ]
+  },
+  {
+    "id": "intellij",
+    "name": "IntelliJ / Android Studio",
+    "processNames": ["idea64", "studio64"],
+    "actions": [
+      { "name": "Search All", "shortcut": "Shift,Shift", "icon": "search" },
+      { "name": "Intentions", "shortcut": "Alt+Enter", "icon": "lightbulb" },
+      { "name": "Rename", "shortcut": "Shift+F6", "icon": "edit" },
+      { "name": "Opt Imports", "shortcut": "Ctrl+Alt+O", "icon": "cleanup" },
+      { "name": "Reformat", "shortcut": "Ctrl+Alt+L", "icon": "format" }
+    ]
+  },
+  {
+    "id": "postman",
+    "name": "Postman",
+    "processNames": ["postman"],
+    "actions": [
+      { "name": "Send", "shortcut": "Ctrl+Enter", "icon": "send" },
+      { "name": "New Tab", "shortcut": "Ctrl+T", "icon": "tab-add" },
+      { "name": "2-Pane View", "shortcut": "Ctrl+Alt+V", "icon": "split" },
+      { "name": "Env", "shortcut": "Ctrl+E", "icon": "globe" },
+      { "name": "Save", "shortcut": "Ctrl+S", "icon": "save" }
+    ]
+  },
+  {
+    "id": "sublime",
+    "name": "Sublime Text",
+    "processNames": ["sublime_text"],
+    "actions": [
+      { "name": "Command Pal", "shortcut": "Ctrl+Shift+P", "icon": "command" },
+      { "name": "Multi-Sel", "shortcut": "Ctrl+D", "icon": "select-multi" },
+      { "name": "Dup Line", "shortcut": "Ctrl+Shift+D", "icon": "copy" },
+      { "name": "Goto Line", "shortcut": "Ctrl+G", "icon": "go-to" },
+      { "name": "Build", "shortcut": "Ctrl+B", "icon": "build" }
+    ]
+  },
+  {
+    "id": "outlook",
+    "name": "Outlook",
+    "processNames": ["outlook"],
+    "actions": [
+      { "name": "New Email", "shortcut": "Ctrl+Shift+M", "icon": "mail-add" },
+      { "name": "Calendar", "shortcut": "Ctrl+2", "icon": "calendar" },
+      { "name": "Send", "shortcut": "Alt+S", "icon": "send" },
+      { "name": "Reply All", "shortcut": "Ctrl+Shift+R", "icon": "reply-all" },
+      { "name": "Mark Read", "shortcut": "Ctrl+Q", "icon": "check" }
+    ]
+  },
+  {
+    "id": "calculator",
+    "name": "Calculator",
+    "processNames": ["calculatorapp"],
+    "actions": [
+      { "name": "History", "shortcut": "Ctrl+H", "icon": "history" },
+      { "name": "Scientific", "shortcut": "Alt+2", "icon": "science" },
+      { "name": "Standard", "shortcut": "Alt+1", "icon": "calculator" },
+      { "name": "Clear", "shortcut": "Ctrl+L", "icon": "trash" }
+    ]
+  },
+  {
+    "id": "snippingtool",
+    "name": "Snipping Tool",
+    "processNames": ["snippingtool"],
+    "actions": [
+      { "name": "New Snip", "shortcut": "Ctrl+N", "icon": "cut" },
+      { "name": "Save", "shortcut": "Ctrl+S", "icon": "save" },
+      { "name": "Copy", "shortcut": "Ctrl+C", "icon": "copy" },
+      { "name": "Delay 3s", "shortcut": "Alt+D", "icon": "clock" }
+    ]
+  },
+  {
+    "id": "audacity",
+    "name": "Audacity",
+    "processNames": ["audacity"],
+    "actions": [
+      { "name": "Record", "shortcut": "R", "icon": "record" },
+      { "name": "Play", "shortcut": "Space", "icon": "play" },
+      { "name": "Export", "shortcut": "Ctrl+Shift+E", "icon": "export" },
+      { "name": "Split New", "shortcut": "Ctrl+Alt+I", "icon": "split" },
+      { "name": "Silence", "shortcut": "Ctrl+L", "icon": "mute" }
+    ]
+  },
+  {
+    "id": "davinci",
+    "name": "DaVinci Resolve",
+    "processNames": ["resolve"],
+    "actions": [
+      { "name": "Blade", "shortcut": "B", "icon": "cut" },
+      { "name": "Select", "shortcut": "A", "icon": "cursor" },
+      { "name": "Snap", "shortcut": "N", "icon": "magnet" },
+      { "name": "Fit View", "shortcut": "Shift+Z", "icon": "zoom-fit" },
+      { "name": "Add Node", "shortcut": "Alt+S", "icon": "node-add" }
+    ]
+  },
+  {
+    "id": "zoom",
+    "name": "Zoom",
+    "processNames": ["zoom"],
+    "actions": [
+      { "name": "Audio Toggle", "shortcut": "Alt+A", "icon": "mic" },
+      { "name": "Video Toggle", "shortcut": "Alt+V", "icon": "camera" },
+      { "name": "Share", "shortcut": "Alt+S", "icon": "share" },
+      { "name": "Raise Hand", "shortcut": "Alt+Y", "icon": "hand" },
+      { "name": "End", "shortcut": "Alt+Q", "icon": "close" }
+    ]
+  },
+  {
+    "id": "archive_managers",
+    "name": "7-Zip / WinRAR",
+    "processNames": ["7zfm", "winrar"],
+    "actions": [
+      { "name": "Extract", "shortcut": "Alt+E", "icon": "extract" },
+      { "name": "Add Archive", "shortcut": "Alt+A", "icon": "archive-add" },
+      { "name": "Test", "shortcut": "Alt+T", "icon": "check" },
+      { "name": "Delete", "shortcut": "Del", "icon": "delete" },
+      { "name": "Props", "shortcut": "Alt+Enter", "icon": "info" }
+    ]
+  },
+  {
+    "id": "photos",
+    "name": "Microsoft Photos",
+    "processNames": ["photos"],
+    "actions": [
+      { "name": "Edit", "shortcut": "Ctrl+E", "icon": "edit" },
+      { "name": "Rotate", "shortcut": "Ctrl+R", "icon": "rotate" },
+      { "name": "Delete", "shortcut": "Del", "icon": "delete" },
+      { "name": "Info", "shortcut": "Alt+Enter", "icon": "info" },
+      { "name": "Zoom", "shortcut": "Z", "icon": "zoom" }
+    ]
+  },
+  {
+    "id": "paint",
+    "name": "Paint",
+    "processNames": ["mspaint"],
+    "actions": [
+      { "name": "Save", "shortcut": "Ctrl+S", "icon": "save" },
+      { "name": "Resize", "shortcut": "Ctrl+W", "icon": "resize" },
+      { "name": "Grid", "shortcut": "Ctrl+G", "icon": "grid" },
+      { "name": "Select All", "shortcut": "Ctrl+A", "icon": "select-all" },
+      { "name": "Properties", "shortcut": "Ctrl+E", "icon": "settings" }
+    ]
+  },
+  {
+    "id": "obs",
+    "name": "OBS Studio",
+    "processNames": ["obs64"],
+    "actions": [
+      { "name": "Start Rec", "shortcut": "Ctrl+R", "icon": "record" },
+      { "name": "Start Stream", "shortcut": "Ctrl+S", "icon": "broadcast" },
+      { "name": "Studio Mode", "shortcut": "Ctrl+Alt+S", "icon": "layout" },
+      { "name": "Settings", "shortcut": "Ctrl+,", "icon": "settings" },
+      { "name": "Exit", "shortcut": "Alt+F4", "icon": "close" }
+    ]
+  },
+  {
+    "id": "steam",
+    "name": "Steam",
+    "processNames": ["steam"],
+    "actions": [
+      { "name": "Library", "shortcut": "Ctrl+2", "icon": "library" },
+      { "name": "Store", "shortcut": "Ctrl+1", "icon": "cart" },
+      { "name": "Friends", "shortcut": "Ctrl+3", "icon": "users" },
+      { "name": "Screenshot", "shortcut": "F12", "icon": "camera" },
+      { "name": "Console", "shortcut": "`", "icon": "terminal" }
+    ]
+  },
+  {
+    "id": "epicgames",
+    "name": "Epic Games",
+    "processNames": ["epicgameslauncher"],
+    "actions": [
+      { "name": "Library", "shortcut": "Ctrl+Shift+L", "icon": "library" },
+      { "name": "Store", "shortcut": "Ctrl+Shift+S", "icon": "cart" },
+      { "name": "Downloads", "shortcut": "Ctrl+Shift+D", "icon": "download" },
+      { "name": "Settings", "shortcut": "Ctrl+Shift+T", "icon": "settings" }
+    ]
+  },
+  {
+    "id": "onenote",
+    "name": "OneNote",
+    "processNames": ["onenote", "onenotem"],
+    "actions": [
+      { "name": "New Page", "shortcut": "Ctrl+N", "icon": "file-add" },
+      { "name": "Bullet List", "shortcut": "Ctrl+.", "icon": "list" },
+      { "name": "Number List", "shortcut": "Ctrl+/", "icon": "list-numbered" },
+      { "name": "Tag ToDo", "shortcut": "Ctrl+1", "icon": "checkbox" },
+      { "name": "Search", "shortcut": "Ctrl+E", "icon": "search" }
+    ]
+  },
+  {
+    "id": "trello",
+    "name": "Trello",
+    "processNames": ["trello"],
+    "actions": [
+      { "name": "New Card", "shortcut": "N", "icon": "add" },
+      { "name": "Quick Edit", "shortcut": "E", "icon": "edit" },
+      { "name": "Archive", "shortcut": "C", "icon": "archive" },
+      { "name": "Assign Me", "shortcut": "Space", "icon": "user" },
+      { "name": "Due Date", "shortcut": "D", "icon": "calendar" }
+    ]
+  },
+  {
+    "id": "notion",
+    "name": "Notion",
+    "processNames": ["notion"],
+    "actions": [
+      { "name": "New Page", "shortcut": "Ctrl+N", "icon": "file-add" },
+      { "name": "Quick Find", "shortcut": "Ctrl+P", "icon": "search" },
+      { "name": "Back", "shortcut": "Ctrl+[", "icon": "arrow-left" },
+      { "name": "Forward", "shortcut": "Ctrl+]", "icon": "arrow-right" },
+      { "name": "Dark Mode", "shortcut": "Ctrl+Shift+L", "icon": "moon" }
+    ]
+  },
+  {
+    "id": "telegram",
+    "name": "Telegram",
+    "processNames": ["telegram"],
+    "actions": [
+      { "name": "Search", "shortcut": "Ctrl+F", "icon": "search" },
+      { "name": "New Chat", "shortcut": "Ctrl+N", "icon": "message-add" },
+      { "name": "Settings", "shortcut": "Ctrl+J", "icon": "settings" },
+      { "name": "Lock", "shortcut": "Ctrl+L", "icon": "lock" },
+      { "name": "Min to Tray", "shortcut": "Ctrl+W", "icon": "minimize" }
+    ]
+  },
+  {
+    "id": "whatsapp",
+    "name": "WhatsApp",
+    "processNames": ["whatsapp"],
+    "actions": [
+      { "name": "New Chat", "shortcut": "Ctrl+N", "icon": "message-add" },
+      { "name": "New Group", "shortcut": "Ctrl+Shift+N", "icon": "group-add" },
+      { "name": "Search", "shortcut": "Ctrl+F", "icon": "search" },
+      { "name": "Profile", "shortcut": "Ctrl+P", "icon": "user" },
+      { "name": "Settings", "shortcut": "Ctrl+,", "icon": "settings" }
+    ]
+  },
+  {
+    "id": "signal",
+    "name": "Signal",
+    "processNames": ["signal"],
+    "actions": [
+      { "name": "Compose", "shortcut": "Ctrl+N", "icon": "message-add" },
+      { "name": "Search", "shortcut": "Ctrl+F", "icon": "search" },
+      { "name": "Settings", "shortcut": "Ctrl+,", "icon": "settings" },
+      { "name": "Reset Sess", "shortcut": "Ctrl+Shift+R", "icon": "refresh" },
+      { "name": "Stickers", "shortcut": "Ctrl+S", "icon": "smile" }
+    ]
+  },
+  {
+    "id": "skype",
+    "name": "Skype",
+    "processNames": ["skype"],
+    "actions": [
+      { "name": "New Chat", "shortcut": "Ctrl+N", "icon": "message-add" },
+      { "name": "Recent", "shortcut": "Alt+1", "icon": "history" },
+      { "name": "Contacts", "shortcut": "Alt+2", "icon": "users" },
+      { "name": "Call", "shortcut": "Ctrl+Shift+P", "icon": "phone" },
+      { "name": "Settings", "shortcut": "Ctrl+,", "icon": "settings" }
+    ]
+  },
+  {
+    "id": "foxit",
+    "name": "Foxit PDF Reader",
+    "processNames": ["foxitreader"],
+    "actions": [
+      { "name": "Hand Tool", "shortcut": "Alt+3", "icon": "hand" },
+      { "name": "Select Text", "shortcut": "Alt+6", "icon": "cursor-text" },
+      { "name": "Snapshot", "shortcut": "Alt+7", "icon": "camera" },
+      { "name": "Find", "shortcut": "Ctrl+F", "icon": "search" },
+      { "name": "Rotate", "shortcut": "Ctrl+Shift+R", "icon": "rotate" }
+    ]
+  },
+  {
+    "id": "acrobat",
+    "name": "Adobe Acrobat",
+    "processNames": ["acrobat"],
+    "actions": [
+      { "name": "Select", "shortcut": "V", "icon": "cursor" },
+      { "name": "Hand", "shortcut": "H", "icon": "hand" },
+      { "name": "Zoom In", "shortcut": "Ctrl++", "icon": "zoom-in" },
+      { "name": "Zoom Out", "shortcut": "Ctrl+-", "icon": "zoom-out" },
+      { "name": "Fit Page", "shortcut": "Ctrl+0", "icon": "fit-page" }
+    ]
+  },
+  {
+    "id": "inkscape",
+    "name": "Inkscape",
+    "processNames": ["inkscape"],
+    "actions": [
+      { "name": "Selector", "shortcut": "S", "icon": "cursor" },
+      { "name": "Node Tool", "shortcut": "N", "icon": "vector-point" },
+      { "name": "Rect", "shortcut": "R", "icon": "shape-rect" },
+      { "name": "Circle", "shortcut": "E", "icon": "shape-circle" },
+      { "name": "Group", "shortcut": "Ctrl+G", "icon": "group" }
+    ]
+  },
+  {
+    "id": "gimp",
+    "name": "GIMP",
+    "processNames": ["gimp-2.10"],
+    "actions": [
+      { "name": "Rect Select", "shortcut": "R", "icon": "select-rect" },
+      { "name": "Move", "shortcut": "M", "icon": "move" },
+      { "name": "Crop", "shortcut": "Shift+C", "icon": "crop" },
+      { "name": "Scale", "shortcut": "Shift+S", "icon": "resize" },
+      { "name": "Filters", "shortcut": "Ctrl+F", "icon": "filter" }
+    ]
+  },
+  {
+    "id": "krita",
+    "name": "Krita",
+    "processNames": ["krita"],
+    "actions": [
+      { "name": "Brush", "shortcut": "B", "icon": "brush" },
+      { "name": "Eraser", "shortcut": "E", "icon": "eraser" },
+      { "name": "Move", "shortcut": "T", "icon": "move" },
+      { "name": "Color Pick", "shortcut": "P", "icon": "eyedropper" },
+      { "name": "Layers", "shortcut": "F3", "icon": "layers" }
+    ]
+  }
+]

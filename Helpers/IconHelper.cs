@@ -141,34 +141,97 @@ namespace Pie.Helpers
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
             graphics.Clear(System.Drawing.Color.Transparent);
 
-            var primaryColor = System.Drawing.Color.FromArgb(88, 86, 214);
-            using var brush = new SolidBrush(primaryColor);
-            using var pen = new System.Drawing.Pen(primaryColor, 3);
+            var color = System.Drawing.Color.FromArgb(88, 86, 214); // Purple-ish
+            using var brush = new SolidBrush(color);
+            using var pen = new System.Drawing.Pen(color, 4);
+            pen.StartCap = LineCap.Round;
+            pen.EndCap = LineCap.Round;
 
-            // Draw a generic action icon (gear/cog shape)
-            var center = new PointF(32, 32);
-            int teeth = 8;
-            float outerRadius = 24;
-            float innerRadius = 16;
-
-            var path = new GraphicsPath();
-            for (int i = 0; i < teeth * 2; i++)
+            // Simple icon mapping
+            if (key.Contains("search") || key.Contains("find"))
             {
-                float angle = (float)(i * Math.PI / teeth);
-                float radius = (i % 2 == 0) ? outerRadius : innerRadius;
-                float x = center.X + radius * (float)Math.Cos(angle);
-                float y = center.Y + radius * (float)Math.Sin(angle);
-                if (i == 0)
-                    path.StartFigure();
-                else
-                    path.AddLine(path.GetLastPoint(), new PointF(x, y));
+                // Magnifying glass
+                graphics.DrawEllipse(pen, 16, 16, 24, 24);
+                graphics.DrawLine(pen, 38, 38, 52, 52);
             }
-            path.CloseFigure();
-            graphics.FillPath(brush, path);
-
-            // Center hole
-            using var whiteBrush = new SolidBrush(System.Drawing.Color.White);
-            graphics.FillEllipse(whiteBrush, 24, 24, 16, 16);
+            else if (key.Contains("add") || key.Contains("new") || key.Contains("plus"))
+            {
+                // Plus sign
+                graphics.FillRectangle(brush, 28, 12, 8, 40);
+                graphics.FillRectangle(brush, 12, 28, 40, 8);
+            }
+            else if (key.Contains("remove") || key.Contains("delete") || key.Contains("close"))
+            {
+                // X mark
+                graphics.DrawLine(pen, 16, 16, 48, 48);
+                graphics.DrawLine(pen, 48, 16, 16, 48);
+            }
+            else if (key.Contains("save") || key.Contains("download"))
+            {
+                // Arrow down
+                graphics.DrawLine(pen, 32, 16, 32, 44);
+                graphics.DrawLine(pen, 20, 32, 32, 44);
+                graphics.DrawLine(pen, 44, 32, 32, 44);
+            }
+            else if (key.Contains("undo") || key.Contains("back") || key.Contains("left"))
+            {
+                // Arrow left
+                graphics.DrawLine(pen, 20, 32, 48, 32);
+                graphics.DrawLine(pen, 20, 32, 32, 20);
+                graphics.DrawLine(pen, 20, 32, 32, 44);
+            }
+            else if (key.Contains("redo") || key.Contains("forward") || key.Contains("right"))
+            {
+                // Arrow right
+                graphics.DrawLine(pen, 16, 32, 44, 32);
+                graphics.DrawLine(pen, 44, 32, 32, 20);
+                graphics.DrawLine(pen, 44, 32, 32, 44);
+            }
+            else if (key.Contains("settings") || key.Contains("config") || key.Contains("properties"))
+            {
+                // Gear (simplified)
+                graphics.DrawEllipse(pen, 20, 20, 24, 24);
+                graphics.FillEllipse(brush, 26, 26, 12, 12);
+            }
+            else if (key.Contains("copy") || key.Contains("duplicate"))
+            {
+                // Two rectangles
+                graphics.DrawRectangle(pen, 20, 20, 28, 28);
+                graphics.DrawRectangle(pen, 12, 12, 28, 28);
+            }
+            else if (key.Contains("cut"))
+            {
+                // Scissors metaphor (X)
+                graphics.DrawLine(pen, 16, 16, 48, 48);
+                graphics.DrawLine(pen, 48, 16, 16, 48);
+                graphics.DrawEllipse(pen, 12, 44, 8, 8);
+                graphics.DrawEllipse(pen, 44, 44, 8, 8);
+            }
+            else if (key.Contains("terminal") || key.Contains("code") || key.Contains("console"))
+            {
+                // Terminal prompt >_
+                graphics.DrawLine(pen, 16, 16, 32, 32);
+                graphics.DrawLine(pen, 32, 32, 16, 48);
+                graphics.DrawLine(pen, 36, 48, 52, 48);
+            }
+            else if (key.Contains("play") || key.Contains("run"))
+            {
+                // Play triangle
+                graphics.FillPolygon(brush, new PointF[] { new PointF(20, 16), new PointF(20, 48), new PointF(48, 32) });
+            }
+            else if (key.Contains("refresh") || key.Contains("reload"))
+            {
+                // Circular arrow
+                graphics.DrawArc(pen, 16, 16, 32, 32, 45, 270);
+                graphics.DrawLine(pen, 36, 14, 48, 24); // Arrow head attempt
+            }
+            else
+            {
+                // Default generic action (3 dots)
+                graphics.FillEllipse(brush, 14, 28, 8, 8);
+                graphics.FillEllipse(brush, 28, 28, 8, 8);
+                graphics.FillEllipse(brush, 42, 28, 8, 8);
+            }
 
             var hBitmap = bitmap.GetHbitmap();
             try
