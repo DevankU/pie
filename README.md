@@ -18,6 +18,9 @@ UNDER DEVELOPMENT — FEATURES MAY BE UNSTABLE. REPORT BUGS IN ISSUES.
 <img width="1199" height="742" alt="settings" src="https://github.com/user-attachments/assets/2e1b72b1-4a9c-40a8-9845-4fb094c5c721" />
 <img width="595" height="611" alt="Switcher" src="https://github.com/user-attachments/assets/4274da8d-1ccb-410c-bd58-0db31c6ca430" />
 <img width="1225" height="859" alt="image" src="https://github.com/user-attachments/assets/f84f5b4b-1494-4864-bbde-f767395554e3" />
+<img width="1223" height="864" alt="image" src="https://github.com/user-attachments/assets/442949a5-5bc4-4215-aee1-bb4bb344c430" />
+
+
 
 
 
