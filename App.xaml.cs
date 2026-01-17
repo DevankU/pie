@@ -171,7 +171,8 @@ namespace Pie
         }
 
         private DateTime _lastHotkeyTime = DateTime.MinValue;
-        private DateTime _lastMiddleButtonTime = DateTime.MinValue;
+        private System.Windows.Threading.DispatcherTimer? _tapDebounceTimer;
+        private int _tapCount = 0;
 
         private void RegisterHotkey()
         {
@@ -217,42 +218,61 @@ namespace Pie
 
         private void StartMouseTrigger()
         {
+            _tapDebounceTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(250) // Wait 250ms for double tap
+            };
+
+            _tapDebounceTimer.Tick += (s, timerArgs) =>
+            {
+                _tapDebounceTimer.Stop();
+                _tapCount = 0;
+
+                // Single Tap Action
+                Dispatcher.Invoke(() =>
+                {
+                    LogService.Debug("Single tap detected (timer expired)");
+                    if (!_pieMenuWindow.IsVisible || _pieMenuWindow.IsClosing)
+                    {
+                        ShowPieMenu(_settingsService.Settings.DefaultMode);
+                    }
+                    else if (DateTime.Now >= _pieMenuWindow.CanToggleCloseAfter)
+                    {
+                        LogService.Debug("Single tap on open menu - closing");
+                        _pieMenuWindow.CloseMenu();
+                    }
+                });
+            };
+
             _mouseTriggerService.MiddleButtonTriggered += (s, e) =>
             {
                 Dispatcher.Invoke(() =>
                 {
-                    var now = DateTime.Now;
-                    var settings = _settingsService.Settings;
-                    var timeSinceLastTap = (now - _lastMiddleButtonTime).TotalMilliseconds;
+                    _tapCount++;
+                    LogService.Debug($"Middle button click! Count: {_tapCount}");
 
-                    LogService.Debug($"Middle button handler - IsVisible: {_pieMenuWindow.IsVisible}, IsClosing: {_pieMenuWindow.IsClosing}, TimeSinceLastTap: {timeSinceLastTap}ms");
-
-                    // Check for double-tap
-                    if (settings.DoubleTapEnabled && timeSinceLastTap < settings.DoubleTapTimeoutMs && timeSinceLastTap > 50)
+                    if (_tapCount == 1)
                     {
-                        LogService.Debug($"Double-tap detected! Opening {settings.DoubleTapMode} mode");
-                        _lastMiddleButtonTime = DateTime.MinValue; // Reset to prevent triple-tap
-
-                        // Just call ShowPieMenu, which now handles mode switching gracefully
-                        ShowPieMenu(settings.DoubleTapMode);
-                        return;
+                        _tapDebounceTimer.Stop(); // Reset timer if it was running (shouldn't happen but safe)
+                        _tapDebounceTimer.Start();
                     }
+                    else if (_tapCount == 2)
+                    {
+                        // Double Tap Detected
+                        _tapDebounceTimer.Stop();
+                        _tapCount = 0;
+                        LogService.Debug("Double tap detected!");
 
-                    _lastMiddleButtonTime = now;
-
-                    if (!_pieMenuWindow.IsVisible || _pieMenuWindow.IsClosing)
-                    {
-                        LogService.Debug("Middle mouse trigger - showing pie menu");
-                        ShowPieMenu(settings.DefaultMode);
-                    }
-                    else if (DateTime.Now >= _pieMenuWindow.CanToggleCloseAfter)
-                    {
-                        LogService.Debug("Middle mouse trigger - closing menu (after toggle timeout)");
-                        _pieMenuWindow.CloseMenu();
-                    }
-                    else
-                    {
-                        LogService.Debug("Middle mouse trigger - menu visible but within 700ms toggle timeout, ignoring");
+                        var settings = _settingsService.Settings;
+                        if (settings.DoubleTapEnabled)
+                        {
+                            ShowPieMenu(settings.DoubleTapMode);
+                        }
+                        else
+                        {
+                            // Treat as single tap if double disabled
+                            ShowPieMenu(settings.DefaultMode);
+                        }
                     }
                 });
             };
