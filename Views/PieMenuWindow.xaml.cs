@@ -45,6 +45,7 @@ namespace Pie.Views
         private PieMenuItem? _pendingActionItem;
         private double _dpiScaleX = 1.0;
         private double _dpiScaleY = 1.0;
+        private DateTime _openedAt = DateTime.MinValue;
 
         public bool IsClosing => _isClosing;
 
@@ -100,7 +101,9 @@ namespace Pie.Views
             PreviewMouseDown += PieMenuWindow_PreviewMouseDown;
             Deactivated += (s, e) =>
             {
-                if (IsVisible && !_isClosing)
+                // Ignore deactivation if it happens immediately after opening (e.g. < 200ms)
+                // This fixes the "Flash & Close" bug where focus shifts momentarily during show
+                if (IsVisible && !_isClosing && (DateTime.Now - _openedAt).TotalMilliseconds > 200)
                 {
                     LogService.Debug("Window deactivated - closing menu");
                     CloseMenu();
@@ -217,7 +220,16 @@ namespace Pie.Views
             // Prepare UI state
             if (!IsVisible)
             {
+                // CRITICAL FIX: Clear previous items immediately so they don't "ghost"
+                // when the window first appears.
+                _pieMenuControl.SetItems(new List<PieMenuItem>());
+                _pieMenuControl.Opacity = 0;
                 _pieMenuControl.Visibility = Visibility.Hidden;
+
+                // Force layout update to apply the "Clear" immediately
+                _pieMenuControl.UpdateLayout();
+
+                _openedAt = DateTime.Now; // Mark open time for Deactivated guard
                 Show();
             }
 
@@ -667,6 +679,10 @@ namespace Pie.Views
                         Hide();
                         _isClosing = false;
                         LogService.Debug("Menu hidden successfully");
+
+                        // Ghosting Fix: Clear items immediately after hiding
+                        // This ensures the next open starts with a blank slate
+                        _pieMenuControl.SetItems(new List<PieMenuItem>());
 
                         // Execute pending action after menu is closed and focus can be restored
                         ExecutePendingAction();
