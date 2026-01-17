@@ -101,8 +101,7 @@ namespace Pie.Views
             PreviewMouseDown += PieMenuWindow_PreviewMouseDown;
             Deactivated += (s, e) =>
             {
-                // Ignore deactivation if it happens immediately after opening (e.g. < 200ms)
-                // This fixes the "Flash & Close" bug where focus shifts momentarily during show
+
                 if (IsVisible && !_isClosing && (DateTime.Now - _openedAt).TotalMilliseconds > 200)
                 {
                     LogService.Debug("Window deactivated - closing menu");
@@ -220,16 +219,14 @@ namespace Pie.Views
             // Prepare UI state
             if (!IsVisible)
             {
-                // CRITICAL FIX: Clear previous items immediately so they don't "ghost"
-                // when the window first appears.
+
+                this.Opacity = 0;
+
+                // Also clear control state
                 _pieMenuControl.SetItems(new List<PieMenuItem>());
                 _pieMenuControl.Opacity = 0;
-                _pieMenuControl.Visibility = Visibility.Hidden;
 
-                // Force layout update to apply the "Clear" immediately
-                _pieMenuControl.UpdateLayout();
-
-                _openedAt = DateTime.Now; // Mark open time for Deactivated guard
+                _openedAt = DateTime.Now;
                 Show();
             }
 
@@ -257,8 +254,8 @@ namespace Pie.Views
             // Cancel any ongoing opacity animation
             _pieMenuControl.BeginAnimation(System.Windows.UIElement.OpacityProperty, null);
 
-            // If it was already visible, just animate items in directly
-            if (_pieMenuControl.Visibility == Visibility.Visible)
+            // If it was already visible (switching modes), animate nicely
+            if (IsVisible && this.Opacity > 0.9)
             {
                  _pieMenuControl.AnimateIn();
             }
@@ -267,6 +264,8 @@ namespace Pie.Views
                 // New open - use dispatcher to prevent flash
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
+                    // Now that data is ready and layout is updated, reveal the window
+                    this.Opacity = 1;
                     _pieMenuControl.Visibility = Visibility.Visible;
                     _pieMenuControl.Opacity = 1;
                     _soundService.PlayActivateSound();
@@ -680,11 +679,10 @@ namespace Pie.Views
                         _isClosing = false;
                         LogService.Debug("Menu hidden successfully");
 
-                        // Ghosting Fix: Clear items immediately after hiding
-                        // This ensures the next open starts with a blank slate
+
                         _pieMenuControl.SetItems(new List<PieMenuItem>());
 
-                        // Execute pending action after menu is closed and focus can be restored
+
                         ExecutePendingAction();
                     }
                     else

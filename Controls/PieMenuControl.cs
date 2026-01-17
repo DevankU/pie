@@ -84,6 +84,9 @@ namespace Pie.Controls
             CreateBackground();
             CreateItemVisuals(itemList);
             CreateCenterElements();
+
+            // Force layout update to ensure Opacity=0 is applied
+            UpdateLayout();
         }
 
         private void ClearVisuals()
